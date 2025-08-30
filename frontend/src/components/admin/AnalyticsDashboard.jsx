@@ -153,10 +153,8 @@ const AnalyticsDashboard = () => {
                         data: overview.statusStats.map(s => s.count),
                         backgroundColor: [
                           '#fbbf24', // pending
-                          '#3b82f6', // under_review
                           '#10b981', // verified
-                          '#ef4444', // false_positive
-                          '#6b7280'  // resolved
+                          '#ef4444', // rejected
                         ],
                         borderWidth: 0
                       }]

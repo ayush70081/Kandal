@@ -331,16 +331,7 @@
   font-size: 0.875rem;
 }
 
-.admin-loading::before {
-  content: '';
-  width: 20px;
-  height: 20px;
-  border: 2px solid #e5e7eb;
-  border-top-color: #10b981;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-right: 0.75rem;
-}
+/* .admin-loading::before spinner removed */
 
 .admin-error {
   background: #fef2f2;

@@ -55,30 +55,7 @@ const submitReport = async (req, res) => {
     const report = new Report(reportData);
     await report.save();
 
-    // Award points to the reporter
-    const pointsAwarded = severity === 'critical' ? 50 : severity === 'high' ? 30 : 20;
-    await req.user.awardPoints(pointsAwarded, 'Report submission');
-    await req.user.incrementReportStats('submitted');
-
-    // Check for reporting badges
-    const reportingBadges = await Badge.checkReportingBadges(req.user.id, req.user.stats.reportsSubmitted);
-    for (const badge of reportingBadges) {
-      await req.user.awardBadge(badge._id);
-      await badge.incrementEarnedCount();
-
-      // Create badge notification
-      await Notification.createBadgeEarnedNotification(req.user.id, badge._id, badge.name);
-    }
-
-    // Check for points badges
-    const pointsBadges = await Badge.checkPointsBadges(req.user.id, req.user.points);
-    for (const badge of pointsBadges) {
-      await req.user.awardBadge(badge._id);
-      await badge.incrementEarnedCount();
-
-      // Create badge notification
-      await Notification.createBadgeEarnedNotification(req.user.id, badge._id, badge.name);
-    }
+    // NOTE: Do not award points or badges on submission; points will be awarded after admin approval.
 
     // Create notification for report submission
     await Notification.createReportSubmittedNotification(report._id, req.user.id, title);
@@ -99,13 +76,131 @@ const submitReport = async (req, res) => {
       }
     }
 
+    // Attempt AI review (non-blocking for user, but await to store result)
+    console.log('AI Review Check:', {
+      hasApiKey: !!process.env.GEMINI_API_KEY,
+      photosArray: Array.isArray(report.photos),
+      photosLength: report.photos?.length || 0,
+      incidentType,
+      severity,
+      description: description.substring(0, 100)
+    });
+    try {
+      if (process.env.GEMINI_API_KEY && Array.isArray(report.photos) && report.photos.length > 0) {
+        const path = require('path');
+        const fs = require('fs').promises;
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+        const firstPhotoPath = path.join(__dirname, '..', report.photos[0].path);
+        const imageBuffer = await fs.readFile(firstPhotoPath);
+        const imagePart = {
+          inlineData: {
+            data: imageBuffer.toString('base64'),
+            mimeType: report.photos[0].mimeType || 'image/webp'
+          }
+        };
+
+        const structuredPrompt = `You are an AI validator for mangrove environmental incident reports. Analyze this image and make a decision.
+
+USER REPORTED:
+- Incident Type: ${incidentType}
+- Severity: ${severity}  
+- Description: "${description.substring(0, 500)}"
+
+ANALYSIS STEPS:
+1. Is this a mangrove/coastal mangrove environment? If NO -> decision="reject"
+2. If YES, do you see evidence of the reported incident type?
+3. Does the visible evidence match the reported severity level?
+
+DECISION RULES:
+- REJECT: Not a mangrove area, or completely wrong incident type
+- APPROVE: Clear evidence supports user's report (type + severity match)
+- INCONCLUSIVE: Mangrove area but evidence is unclear/ambiguous
+
+Return ONLY this JSON format (no markdown):
+{
+  "mangroveDetected": true/false,
+  "detectedIncidentType": "illegal_cutting"|"dumping"|"pollution"|"land_reclamation"|"wildlife_disturbance"|"erosion"|"oil_spill"|"construction"|"other"|null,
+  "detectedSeverity": "low"|"medium"|"high"|"critical"|null,
+  "decision": "approve"|"reject"|"inconclusive",
+  "reason": "Brief explanation for your decision (max 300 chars)",
+  "confidence": 0.8
+}`;
+
+        const result = await model.generateContent([structuredPrompt, imagePart]);
+        const text = (await result.response).text();
+        console.log('AI Response Text:', text);
+        let parsed;
+        try { 
+          parsed = JSON.parse(text.replace(/```json|```/g, '').trim()); 
+          console.log('Parsed AI Response:', parsed);
+        } catch (e) { 
+          console.error('Failed to parse AI response:', e.message);
+          parsed = null; 
+        }
+
+        if (parsed && typeof parsed === 'object') {
+          console.log('AI Decision Logic:', {
+            originalDecision: parsed.decision,
+            isValidDecision: ['approve', 'reject', 'inconclusive'].includes(parsed.decision),
+            finalDecision: ['approve', 'reject', 'inconclusive'].includes(parsed.decision) ? parsed.decision : 'inconclusive'
+          });
+          
+          report.aiReview = {
+            decision: ['approve', 'reject', 'inconclusive'].includes(parsed.decision) ? parsed.decision : 'inconclusive',
+            reason: parsed.reason || 'No reason provided',
+            mangroveDetected: !!parsed.mangroveDetected,
+            detectedIncidentType: parsed.detectedIncidentType || null,
+            detectedSeverity: parsed.detectedSeverity || null,
+            matchedIncidentType: parsed.detectedIncidentType ? parsed.detectedIncidentType === incidentType : false,
+            matchedSeverity: parsed.detectedSeverity ? parsed.detectedSeverity === severity : false,
+            confidence: typeof parsed.confidence === 'number' ? Math.max(0, Math.min(1, parsed.confidence)) : 0.5,
+            model: 'gemini-1.5-flash',
+            processedAt: new Date()
+          };
+          console.log('Final AI Review:', report.aiReview);
+          await report.save();
+        } else {
+          console.log('AI parsing failed, using fallback');
+          report.aiReview = {
+            decision: 'inconclusive',
+            reason: 'AI could not return a structured result',
+            mangroveDetected: false,
+            model: 'gemini-1.5-flash',
+            processedAt: new Date()
+          };
+          await report.save();
+        }
+      } else {
+        // No API key or no photos
+        report.aiReview = {
+          decision: 'inconclusive',
+          reason: !process.env.GEMINI_API_KEY ? 'AI not configured' : 'No photo provided for AI review',
+          mangroveDetected: false,
+          processedAt: new Date()
+        };
+        await report.save();
+      }
+    } catch (aiError) {
+      console.error('AI review failed:', aiError.message);
+      try {
+        report.aiReview = {
+          decision: 'inconclusive',
+          reason: 'AI processing error',
+          mangroveDetected: false,
+          processedAt: new Date()
+        };
+        await report.save();
+      } catch {}
+    }
+
     // Populate reporter info for response
     await report.populate('reporter', 'name');
 
     res.status(201).json({
       message: 'Report submitted successfully',
-      report: report,
-      pointsAwarded: pointsAwarded
+      report: report
     });
 
   } catch (error) {

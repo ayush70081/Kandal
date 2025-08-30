@@ -78,7 +78,7 @@ const validateReportValidation = [
     .withMessage('Invalid report ID'),
 
   body('status')
-    .isIn(['pending', 'under_review', 'verified', 'false_positive', 'resolved'])
+    .isIn(['pending', 'verified', 'rejected'])
     .withMessage('Invalid status'),
 
   body('validationNotes')
@@ -161,7 +161,7 @@ router.get('/',
 
     query('status')
       .optional()
-      .isIn(['pending', 'under_review', 'verified', 'false_positive', 'resolved'])
+      .isIn(['pending', 'verified', 'rejected'])
       .withMessage('Invalid status'),
 
     query('lat')

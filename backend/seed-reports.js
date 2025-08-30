@@ -49,7 +49,7 @@ const sampleReports = [
       state: 'Maharashtra',
       country: 'India'
     },
-    status: 'under_review',
+    status: 'pending',
     tags: ['pollution', 'waste', 'industrial', 'habitat']
   },
   {
@@ -103,7 +103,7 @@ const sampleReports = [
       state: 'Maharashtra',
       country: 'India'
     },
-    status: 'under_review',
+    status: 'pending',
     tags: ['erosion', 'coastal', 'development', 'buffer_zone']
   }
 ];

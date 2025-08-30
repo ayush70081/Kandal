@@ -293,21 +293,7 @@
 }
 
 .location-button.loading {
-  position: relative;
-}
-
-.location-button.loading::after {
-  content: '';
-  position: absolute;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+  /* spinner removed */
 }
 
 .location-help {
@@ -449,7 +435,9 @@
   margin-top: 2rem;
 }
 
-.btn {
+/* Button Styles - More specific to override global styles */
+.report-submission-page .btn,
+.report-submission-page button.btn {
   padding: 0.75rem 2rem;
   border-radius: 6px;
   font-weight: 600;
@@ -462,54 +450,46 @@
   align-items: center;
   justify-content: center;
   min-width: 140px;
+  /* Override global button styles */
+  background-color: transparent;
+  color: inherit;
 }
 
-.btn-secondary {
-  background-color: #6c757d;
-  color: white;
-  border-color: #6c757d;
+.report-submission-page .btn-secondary,
+.report-submission-page button.btn-secondary {
+  background-color: #6c757d !important;
+  color: white !important;
+  border-color: #6c757d !important;
 }
 
-.btn-secondary:hover:not(:disabled) {
-  background-color: #5a6268;
-  border-color: #5a6268;
+.report-submission-page .btn-secondary:hover:not(:disabled),
+.report-submission-page button.btn-secondary:hover:not(:disabled) {
+  background-color: #5a6268 !important;
+  border-color: #5a6268 !important;
   transform: translateY(-1px);
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-  color: white;
-  border-color: #28a745;
+.report-submission-page .btn-primary,
+.report-submission-page button.btn-primary {
+  background: linear-gradient(135deg, #1e4d2b 0%, #2d5a27 100%) !important;
+  color: white !important;
+  border-color: #1e4d2b !important;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #218838 0%, #1e7e34 100%);
+.report-submission-page .btn-primary:hover:not(:disabled),
+.report-submission-page button.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #163d21 0%, #1e4d2b 100%) !important;
   transform: translateY(-1px);
 }
 
-.btn:disabled {
+.report-submission-page .btn:disabled,
+.report-submission-page button.btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
 }
 
-.btn.loading {
-  position: relative;
-}
-
-.btn.loading::after {
-  content: '';
-  position: absolute;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
+/* spinner handled globally in index.css for consistency */
 
 .analysis-result {
     background-color: #f8f9fa;
@@ -577,7 +557,8 @@
     flex-direction: column-reverse;
   }
 
-  .btn {
+  .report-submission-page .btn,
+  .report-submission-page button.btn {
     width: 100%;
   }
 

@@ -93,16 +93,18 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: var(--mangrove-bg);
+  background-color: transparent;
   color: var(--text-primary);
   cursor: pointer;
   transition: all var(--transition-normal);
 }
 
 button:hover {
-  background-color: var(--mangrove-hover);
-  transform: translateY(-1px);
+  background-color: transparent;
+  transform: none;
 }
+
+/* Button loading styles removed - no spinners in buttons */
 
 button:focus,
 button:focus-visible {
