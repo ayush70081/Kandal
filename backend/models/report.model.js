@@ -68,13 +68,7 @@ const reportSchema = new mongoose.Schema({
     }
   },
   
-  address: {
-    street: String,
-    city: String,
-    state: String,
-    country: String,
-    postalCode: String
-  },
+
   
   // Photo evidence
   photos: [{
@@ -192,11 +186,6 @@ const reportSchema = new mongoose.Schema({
   }],
   
   // Additional metadata
-  tags: [{
-    type: String,
-    trim: true,
-    maxlength: 50
-  }],
   
   isPublic: {
     type: Boolean,

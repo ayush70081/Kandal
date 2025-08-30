@@ -25,9 +25,7 @@ const submitReport = async (req, res) => {
       incidentType,
       description,
       severity,
-      location,
-      address,
-      tags
+      location
     } = req.body;
 
     // Parse location coordinates
@@ -44,14 +42,8 @@ const submitReport = async (req, res) => {
         coordinates: [coordinates.longitude, coordinates.latitude]
       },
       reporter: req.user.id,
-      photos: req.processedFiles || [],
-      tags: tags ? tags.split(',').map(tag => tag.trim()) : []
+      photos: req.processedFiles || []
     };
-
-    // Add address if provided
-    if (address) {
-      reportData.address = JSON.parse(address);
-    }
 
     // Set priority based on severity
     if (severity === 'critical' || severity === 'high') {

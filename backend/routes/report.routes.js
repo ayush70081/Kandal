@@ -67,24 +67,7 @@ const submitReportValidation = [
       }
     }),
   
-  body('tags')
-    .optional()
-    .isString()
-    .withMessage('Tags must be a comma-separated string'),
-  
-  body('address')
-    .optional()
-    .custom((value) => {
-      if (value) {
-        try {
-          const addr = JSON.parse(value);
-          return true;
-        } catch (error) {
-          throw new Error('Invalid address format');
-        }
-      }
-      return true;
-    })
+
 ];
 
 // Validation rules for report validation/status update

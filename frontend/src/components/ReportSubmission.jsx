@@ -15,15 +15,7 @@ const ReportSubmission = () => {
     location: {
       latitude: null,
       longitude: null
-    },
-    address: {
-      street: '',
-      city: '',
-      state: '',
-      country: '',
-      postalCode: ''
-    },
-    tags: ''
+    }
   });
   
   const [photos, setPhotos] = useState([]);
@@ -94,21 +86,10 @@ const ReportSubmission = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     
-    if (name.includes('.')) {
-      const [parent, child] = name.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent],
-          [child]: value
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
     
     if (error) setError('');
   };
@@ -221,12 +202,6 @@ const ReportSubmission = () => {
       submitData.append('description', formData.description);
       submitData.append('severity', formData.severity);
       submitData.append('location', JSON.stringify(formData.location));
-      submitData.append('tags', formData.tags);
-      
-      // Add address if provided
-      if (Object.values(formData.address).some(value => value.trim())) {
-        submitData.append('address', JSON.stringify(formData.address));
-      }
       
       // Add photos
       photos.forEach((photo) => {
@@ -456,56 +431,7 @@ const ReportSubmission = () => {
                 </div>
               </div>
 
-              <div className="address-section">
-                <h3 className="subsection-title">Address (Optional)</h3>
-                <div className="form-grid">
-                  <div className="form-field full-width">
-                    <input
-                      name="address.street"
-                      className="form-input"
-                      placeholder="Street address"
-                      value={formData.address.street}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="form-field">
-                    <input
-                      name="address.city"
-                      className="form-input"
-                      placeholder="City"
-                      value={formData.address.city}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="form-field">
-                    <input
-                      name="address.state"
-                      className="form-input"
-                      placeholder="State/Province"
-                      value={formData.address.state}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="form-field">
-                    <input
-                      name="address.country"
-                      className="form-input"
-                      placeholder="Country"
-                      value={formData.address.country}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="form-field">
-                    <input
-                      name="address.postalCode"
-                      className="form-input"
-                      placeholder="Postal Code"
-                      value={formData.address.postalCode}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-              </div>
+
             </div>
 
             {/* Evidence Section */}
@@ -557,28 +483,7 @@ const ReportSubmission = () => {
               </div>
             </div>
 
-            {/* Additional Information */}
-            <div className="form-section">
-              <h2 className="section-title">Additional Information</h2>
-              
-              <div className="form-field full-width">
-                <label className="field-label" htmlFor="tags">
-                  Tags (Optional)
-                </label>
-                <input
-                  id="tags"
-                  name="tags"
-                  type="text"
-                  className="form-input"
-                  placeholder="Enter relevant tags separated by commas (e.g., urgent, pollution, wildlife)"
-                  value={formData.tags}
-                  onChange={handleChange}
-                />
-                <div className="field-info">
-                  Tags help categorize and prioritize your report
-                </div>
-              </div>
-            </div>
+
 
             {/* Form Actions */}
             <div className="form-actions">
