@@ -1,8 +1,13 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/database');
 const authRoutes = require('./routes/auth.routes');
+const reportRoutes = require('./routes/report.routes');
+const notificationRoutes = require('./routes/notification.routes');
 
 // Load environment variables
 dotenv.config();
@@ -12,6 +17,21 @@ const app = express();
 
 // Connect to MongoDB
 connectDB();
+
+// Security middleware
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'development' ? 1000 : 100, // limit each IP to 100 requests per windowMs in production
+  message: {
+    error: 'Too many requests from this IP, please try again later.'
+  }
+});
+app.use('/api/', limiter);
 
 // Middleware
 app.use(cors({
@@ -28,15 +48,28 @@ app.use((req, res, next) => {
   next();
 });
 
+// Serve static files for uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Root health check
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'Kandal Authentication API',
-    version: '1.0.0',
+    message: 'Mangrove Monitoring API',
+    version: '2.0.0',
+    features: [
+      'User Authentication & Authorization',
+      'Incident Reporting System',
+      'Photo Upload & Processing',
+      'Gamification & Leaderboards',
+      'Geographic Data & Mapping',
+      'Real-time Notifications'
+    ],
     timestamp: new Date().toISOString()
   });
 });

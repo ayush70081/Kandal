@@ -27,19 +27,34 @@ const registerValidation = [
     .isEmail()
     .normalizeEmail()
     .withMessage('Please provide a valid email address'),
-  
+
   body('password')
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters long')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
     .withMessage('Password must contain at least one lowercase letter, one uppercase letter, and one number'),
-  
+
   body('name')
     .trim()
     .isLength({ min: 1, max: 100 })
     .withMessage('Name is required and must be less than 100 characters')
     .matches(/^[a-zA-Z\s]+$/)
-    .withMessage('Name can only contain letters and spaces')
+    .withMessage('Name can only contain letters and spaces'),
+
+  body('location.city')
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('City is required and must be less than 100 characters'),
+  
+  body('location.coordinates.latitude')
+    .optional()
+    .isFloat({ min: -90, max: 90 })
+    .withMessage('Latitude must be between -90 and 90'),
+  
+  body('location.coordinates.longitude')
+    .optional()
+    .isFloat({ min: -180, max: 180 })
+    .withMessage('Longitude must be between -180 and 180')
 ];
 
 const loginValidation = [
@@ -61,7 +76,38 @@ const updateProfileValidation = [
     .isLength({ min: 1, max: 100 })
     .withMessage('Name must be less than 100 characters')
     .matches(/^[a-zA-Z\s]+$/)
-    .withMessage('Name can only contain letters and spaces')
+    .withMessage('Name can only contain letters and spaces'),
+
+  body('location.city')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('City is required when provided and must be less than 100 characters'),
+  
+  body('location.coordinates.latitude')
+    .optional()
+    .isFloat({ min: -90, max: 90 })
+    .withMessage('Latitude must be between -90 and 90'),
+  
+  body('location.coordinates.longitude')
+    .optional()
+    .isFloat({ min: -180, max: 180 })
+    .withMessage('Longitude must be between -180 and 180'),
+  
+  body('preferences.emailNotifications')
+    .optional()
+    .isBoolean()
+    .withMessage('Email notifications preference must be a boolean'),
+  
+  body('preferences.smsNotifications')
+    .optional()
+    .isBoolean()
+    .withMessage('SMS notifications preference must be a boolean'),
+  
+  body('preferences.publicProfile')
+    .optional()
+    .isBoolean()
+    .withMessage('Public profile preference must be a boolean')
 ];
 
 const changePasswordValidation = [
@@ -98,6 +144,19 @@ router.post('/register', authRateLimit, registerValidation, AuthController.regis
  * @access  Public
  */
 router.post('/login', authRateLimit, loginValidation, AuthController.login);
+
+/**
+ * @route   GET /api/auth/login
+ * @desc    Handle GET requests to login (return helpful message)
+ * @access  Public
+ */
+router.get('/login', (req, res) => {
+  res.json({
+    success: false,
+    message: 'Please use POST method for login',
+    hint: 'Use the frontend login page at /login'
+  });
+});
 
 /**
  * @route   POST /api/auth/refresh
@@ -148,6 +207,20 @@ router.put('/change-password', authenticateToken, changePasswordValidation, Auth
  * @access  Private
  */
 router.get('/verify', authenticateToken, AuthController.verifyToken);
+
+/**
+ * @route   GET /api/auth/stats
+ * @desc    Get current user statistics and achievements
+ * @access  Private
+ */
+router.get('/stats', authenticateToken, AuthController.getUserStats);
+
+/**
+ * @route   GET /api/auth/leaderboard
+ * @desc    Get leaderboard of users by points
+ * @access  Private
+ */
+router.get('/leaderboard', authenticateToken, AuthController.getLeaderboard);
 
 // Health check for auth routes
 /**

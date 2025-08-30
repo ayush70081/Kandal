@@ -7,7 +7,10 @@ const Register = () => {
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    location: {
+      city: ''
+    }
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -21,10 +24,23 @@ const Register = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
+    
+    if (name.includes('.')) {
+      // Handle nested objects (like location.city)
+      const [parent, child] = name.split('.');
+      setFormData({
+        ...formData,
+        [parent]: {
+          ...formData[parent],
+          [child]: value
+        }
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+    }
     
     // Clear field-specific error when user starts typing
     if (fieldErrors[name]) {
@@ -70,6 +86,11 @@ const Register = () => {
       errors.confirmPassword = 'Please confirm your password';
     } else if (formData.password !== formData.confirmPassword) {
       errors.confirmPassword = 'Passwords do not match';
+    }
+    
+    // City validation
+    if (!formData.location.city.trim()) {
+      errors['location.city'] = 'City is required';
     }
     
     setFieldErrors(errors);
@@ -119,8 +140,8 @@ const Register = () => {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <h1>Join Kandal</h1>
-          <p>Create your account to get started</p>
+          <h1>Join Mangrove Guardians</h1>
+          <p>Help protect mangrove forests by reporting incidents and monitoring conservation efforts</p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form" noValidate>
@@ -170,6 +191,27 @@ const Register = () => {
             />
             {fieldErrors.email && (
               <div className="field-error">{fieldErrors.email}</div>
+            )}
+          </div>
+
+
+
+
+
+          {/* Location Fields */}
+          <div className="form-group">
+            <label htmlFor="location.city">City</label>
+            <input
+              id="location.city"
+              name="location.city"
+              type="text"
+              placeholder="Your city"
+              value={formData.location.city}
+              onChange={handleChange}
+              className={fieldErrors['location.city'] ? 'error' : ''}
+            />
+            {fieldErrors['location.city'] && (
+              <div className="field-error">{fieldErrors['location.city']}</div>
             )}
           </div>
 
@@ -264,7 +306,7 @@ const Register = () => {
             disabled={loading}
             className="btn primary full-width"
           >
-            {loading ? 'Creating account...' : 'Create Account'}
+            {loading ? 'Creating account...' : 'Join Mangrove Guardians'}
           </button>
 
           {/* Sign In Link */}

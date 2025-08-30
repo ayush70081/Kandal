@@ -18,7 +18,7 @@ class AuthController {
         });
       }
 
-      const { email, password, name } = req.body;
+      const { email, password, name, location, preferences } = req.body;
 
       // Check if user already exists
       const existingUser = await User.findOne({ email });
@@ -30,12 +30,18 @@ class AuthController {
         });
       }
 
-      // Create new user
-      const user = new User({
+      // Create new user with enhanced fields
+      const userData = {
         email,
         password,
         name
-      });
+      };
+
+      // Add optional fields if provided
+      if (location) userData.location = location;
+      if (preferences) userData.preferences = { ...userData.preferences, ...preferences };
+
+      const user = new User(userData);
 
       await user.save();
 
@@ -244,7 +250,7 @@ class AuthController {
   }
 
   /**
-   * Update user profile
+   * Update user profile with enhanced fields
    */
   static async updateProfile(req, res) {
     try {
@@ -259,10 +265,20 @@ class AuthController {
       }
 
       const user = req.user;
-      const { name } = req.body;
+      const {
+        name,
+        location,
+        preferences
+      } = req.body;
 
       // Update allowed fields
       if (name !== undefined) user.name = name;
+      if (location !== undefined) {
+        user.location = { ...user.location, ...location };
+      }
+      if (preferences !== undefined) {
+        user.preferences = { ...user.preferences, ...preferences };
+      }
 
       await user.save();
 
@@ -357,6 +373,110 @@ class AuthController {
       res.status(500).json({
         success: false,
         message: 'Token verification failed',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+
+  /**
+   * Get user statistics and achievements
+   */
+  static async getUserStats(req, res) {
+    try {
+      const user = req.user;
+      
+      // Get user rank
+      const rank = await user.getUserRank();
+      
+      // Populate badges
+      await user.populate('badges.badgeId', 'name icon category type');
+      
+      const stats = {
+        points: user.points,
+        rank: rank,
+        contributionLevel: user.stats.contributionLevel,
+        reportsSubmitted: user.stats.reportsSubmitted,
+        reportsValidated: user.stats.reportsValidated,
+        totalContributions: user.totalContributions,
+        badges: user.badges,
+        joinedAt: user.createdAt,
+        lastLogin: user.lastLogin
+      };
+      
+      res.json({
+        success: true,
+        message: 'User statistics retrieved successfully',
+        data: { stats }
+      });
+    } catch (error) {
+      console.error('Get user stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve user statistics',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+
+  /**
+   * Get leaderboard
+   */
+  static async getLeaderboard(req, res) {
+    try {
+      const { limit = 50, timeframe = 'all_time' } = req.query;
+      
+      let matchCondition = { isActive: true };
+      
+      // Add timeframe filter if needed
+      if (timeframe !== 'all_time') {
+        const now = new Date();
+        let startDate;
+        
+        switch (timeframe) {
+          case 'weekly':
+            startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+          case 'monthly':
+            startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            break;
+          case 'yearly':
+            startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+            break;
+          default:
+            startDate = null;
+        }
+        
+        if (startDate) {
+          matchCondition.createdAt = { $gte: startDate };
+        }
+      }
+      
+      const leaders = await User.find(matchCondition)
+        .select('name location.city points stats badges')
+        .sort({ points: -1, 'stats.reportsSubmitted': -1 })
+        .limit(parseInt(limit))
+        .populate('badges.badgeId', 'name icon type');
+      
+      // Add rank to each user
+      const leaderboard = leaders.map((user, index) => ({
+        ...user.toJSON(),
+        rank: index + 1
+      }));
+      
+      res.json({
+        success: true,
+        message: 'Leaderboard retrieved successfully',
+        data: { 
+          leaderboard,
+          timeframe,
+          total: leaders.length
+        }
+      });
+    } catch (error) {
+      console.error('Get leaderboard error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve leaderboard',
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }

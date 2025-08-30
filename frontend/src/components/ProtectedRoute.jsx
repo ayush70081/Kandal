@@ -9,11 +9,8 @@ const ProtectedRoute = ({ children, redirectTo = "/login" }) => {
   // Show loading spinner while checking authentication
   if (isLoading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading...</p>
-        </div>
+      <div className="spinner-fullscreen">
+        <div className="spinner-icon" aria-hidden="true">✴</div>
       </div>
     );
   }
@@ -51,11 +48,8 @@ export const PublicRoute = ({ children, redirectTo = "/home" }) => {
   // Show loading spinner while checking authentication
   if (isLoading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading...</p>
-        </div>
+      <div className="spinner-fullscreen">
+        <div className="spinner-icon" aria-hidden="true">✴</div>
       </div>
     );
   }

@@ -25,6 +25,80 @@ const userSchema = new mongoose.Schema({
     minlength: [6, 'Password must be at least 6 characters long']
   },
 
+
+  // Location preferences
+  location: {
+    city: {
+      type: String,
+      required: [true, 'City is required'],
+      trim: true,
+      maxlength: [100, 'City name must be less than 100 characters']
+    },
+    coordinates: {
+      latitude: {
+        type: Number,
+        min: [-90, 'Latitude must be between -90 and 90'],
+        max: [90, 'Latitude must be between -90 and 90']
+      },
+      longitude: {
+        type: Number,
+        min: [-180, 'Longitude must be between -180 and 180'],
+        max: [180, 'Longitude must be between -180 and 180']
+      }
+    }
+  },
+  
+  // Gamification fields
+  points: {
+    type: Number,
+    default: 0,
+    min: [0, 'Points cannot be negative']
+  },
+  
+  badges: [{
+    badgeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Badge'
+    },
+    earnedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  
+  // User preferences
+  preferences: {
+    emailNotifications: {
+      type: Boolean,
+      default: true
+    },
+    smsNotifications: {
+      type: Boolean,
+      default: false
+    },
+    publicProfile: {
+      type: Boolean,
+      default: true
+    }
+  },
+  
+  // Statistics
+  stats: {
+    reportsSubmitted: {
+      type: Number,
+      default: 0
+    },
+    reportsValidated: {
+      type: Number,
+      default: 0
+    },
+    contributionLevel: {
+      type: String,
+      enum: ['Bronze', 'Silver', 'Gold', 'Platinum'],
+      default: 'Bronze'
+    }
+  },
+
   refreshTokens: [{
     token: {
       type: String,
@@ -112,7 +186,68 @@ userSchema.methods.updateLastLogin = function() {
   return this.save();
 };
 
+// Award points to user
+userSchema.methods.awardPoints = function(points, reason = 'General contribution') {
+  this.points += points;
+  
+  // Update contribution level based on points
+  if (this.points >= 1000) {
+    this.stats.contributionLevel = 'Platinum';
+  } else if (this.points >= 500) {
+    this.stats.contributionLevel = 'Gold';
+  } else if (this.points >= 200) {
+    this.stats.contributionLevel = 'Silver';
+  } else {
+    this.stats.contributionLevel = 'Bronze';
+  }
+  
+  return this.save();
+};
 
+// Award badge to user
+userSchema.methods.awardBadge = function(badgeId) {
+  // Check if user already has this badge
+  const hasBadge = this.badges.some(badge => badge.badgeId.equals(badgeId));
+  
+  if (!hasBadge) {
+    this.badges.push({ badgeId });
+    return this.save();
+  }
+  
+  return Promise.resolve(this);
+};
+
+// Increment report statistics
+userSchema.methods.incrementReportStats = function(type = 'submitted') {
+  if (type === 'submitted') {
+    this.stats.reportsSubmitted += 1;
+  } else if (type === 'validated') {
+    this.stats.reportsValidated += 1;
+  }
+  
+  return this.save();
+};
+
+// Get user's rank based on points
+userSchema.methods.getUserRank = async function() {
+  const rank = await this.constructor.countDocuments({
+    points: { $gt: this.points }
+  });
+  
+  return rank + 1;
+};
+
+
+
+// Virtual field for full name (if needed)
+userSchema.virtual('displayName').get(function() {
+  return this.name;
+});
+
+// Virtual field for total contributions
+userSchema.virtual('totalContributions').get(function() {
+  return this.stats.reportsSubmitted + this.stats.reportsValidated;
+});
 
 // Ensure virtual fields are serialized
 userSchema.set('toJSON', { virtuals: true });
