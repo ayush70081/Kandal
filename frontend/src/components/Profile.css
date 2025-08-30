@@ -1,11 +1,12 @@
 /* Profile Component Styles */
-.tab-content {
+.profile-container {
+  width: 100%;
+  height: 100%;
   padding: 2rem;
-  max-width: 800px;
-  margin: 0 auto;
+  background-color: #ffffff;
 }
 
-.tab-content h2 {
+.profile-container h2 {
   color: #2c3e50;
   margin-bottom: 2rem;
   font-size: 1.8rem;
@@ -163,7 +164,7 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .tab-content {
+  .profile-container {
     padding: 1rem;
   }
   

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../utils/axios';
 import { useAuth } from '../contexts/AuthContext';
-import ReportsMap from './ReportsMap';
 import './ReportListing.css';
 
 const ReportListing = () => {
@@ -14,7 +13,7 @@ const ReportListing = () => {
     incidentType: 'all',
     severity: 'all'
   });
-  const [showMap, setShowMap] = useState(true);
+  // Map view removed; only list view showing current user's reports
   
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -61,6 +60,8 @@ const ReportListing = () => {
 
       // Build query parameters
       const queryParams = new URLSearchParams();
+      // Always filter by current user's id so only their reports are shown
+      if (user?._id) queryParams.append('reporterId', user._id);
       if (filters.status !== 'all') queryParams.append('status', filters.status);
       if (filters.incidentType !== 'all') queryParams.append('incidentType', filters.incidentType);
       if (filters.severity !== 'all') queryParams.append('severity', filters.severity);
@@ -124,9 +125,9 @@ const ReportListing = () => {
     return colors[severity] || '#6c757d';
   };
 
-  // Handle marker click
-  const handleMarkerClick = (report) => {
-    navigate(`/reports/${report._id}`);
+  // Navigate to report details
+  const goToReportDetails = (reportId) => {
+    navigate(`/reports/${reportId}`);
   };
 
   // Format date
@@ -156,10 +157,8 @@ const ReportListing = () => {
         {/* Header Section */}
         <div className="page-header">
           <div className="header-content">
-            <h1 className="page-title">Environmental Incident Reports</h1>
-            <p className="page-subtitle">
-              Monitor, track, and manage environmental incidents affecting mangrove ecosystems
-            </p>
+            <h1 className="page-title">My Reports</h1>
+            <p className="page-subtitle">View reports you have submitted</p>
           </div>
           <div className="header-actions">
             <button
@@ -180,7 +179,7 @@ const ReportListing = () => {
           </div>
         )}
 
-        {/* Filters and Controls */}
+        {/* Filters */}
         <div className="controls-section">
           <div className="filters-container">
             <div className="filter-group">
@@ -235,111 +234,13 @@ const ReportListing = () => {
             </div>
           </div>
 
-          <div className="view-controls">
-            <button
-              className={`view-toggle ${!showMap ? 'active' : ''}`}
-              onClick={() => setShowMap(false)}
-            >
-              List View
-            </button>
-            <button
-              className={`view-toggle ${showMap ? 'active' : ''}`}
-              onClick={() => setShowMap(true)}
-            >
-              Map View
-            </button>
-          </div>
         </div>
 
-        {/* Content Area */}
+        {/* Content Area - List only */}
         <div className="content-area">
-          {showMap ? (
-            <div className="map-layout">
-              <div className="reports-sidebar">
-                <div className="sidebar-header">
-                  <h3>Recent Reports</h3>
-                  <span className="report-count">{reports.length} reports</span>
-                </div>
-                
-                <div className="reports-list-compact">
-                  {reports.length === 0 ? (
-                    <div className="empty-state-compact">
-                      <p>No reports match your current filters.</p>
-                      <button
-                        className="btn btn-outline"
-                        onClick={() => navigate('/report')}
-                      >
-                        Submit First Report
-                      </button>
-                    </div>
-                  ) : (
-                    reports.slice(0, 10).map(report => (
-                      <div key={report._id} className="report-item-compact">
-                        <div className="report-compact-header">
-                          <h4 className="report-compact-title">{report.title}</h4>
-                          <div className="report-compact-badges">
-                            <span className={`status-badge status-${report.status}`}>
-                              {report.status}
-                            </span>
-                            <span className={`priority-badge priority-${report.severity}`}>
-                              {report.severity}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="report-compact-meta">
-                          <span className="report-type">
-                            {incidentTypes.find(t => t.value === report.incidentType)?.label || report.incidentType}
-                          </span>
-                          <span className="report-date">{formatDate(report.createdAt)}</span>
-                        </div>
-                        <button
-                          className="btn btn-sm btn-outline"
-                          onClick={() => navigate(`/reports/${report._id}`)}
-                        >
-                          View Details
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div className="map-container">
-                <div className="map-header">
-                  <h3>Incident Locations</h3>
-                  <div className="map-legend">
-                    <div className="legend-title">Priority Levels</div>
-                    <div className="legend-items">
-                      <div className="legend-item">
-                        <div className="legend-color priority-low"></div>
-                        <span>Low</span>
-                      </div>
-                      <div className="legend-item">
-                        <div className="legend-color priority-medium"></div>
-                        <span>Medium</span>
-                      </div>
-                      <div className="legend-item">
-                        <div className="legend-color priority-high"></div>
-                        <span>High</span>
-                      </div>
-                      <div className="legend-item">
-                        <div className="legend-color priority-critical"></div>
-                        <span>Critical</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <ReportsMap 
-                  reports={reports.filter(report => report.location && report.location.coordinates && report.location.coordinates.length === 2)} 
-                  onMarkerClick={handleMarkerClick}
-                  height="600px"
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="list-layout">
+          <div className="list-layout">
               <div className="list-header">
-                <h3>All Reports</h3>
+                <h3>My Reports</h3>
                 <span className="report-count">{reports.length} reports found</span>
               </div>
 
@@ -348,7 +249,7 @@ const ReportListing = () => {
                   <div className="empty-state-content">
                     <div className="empty-icon"></div>
                     <h3>No Reports Found</h3>
-                    <p>No reports match your current filters or no reports have been submitted yet.</p>
+                    <p>You haven't submitted any reports yet or none match your current filters.</p>
                     <button
                       className="btn btn-primary"
                       onClick={() => navigate('/report')}
@@ -384,10 +285,6 @@ const ReportListing = () => {
                             </span>
                           </div>
                           <div className="meta-item">
-                            <span className="meta-label">Reporter:</span>
-                            <span className="meta-value">{report.reporter?.name || 'Anonymous'}</span>
-                          </div>
-                          <div className="meta-item">
                             <span className="meta-label">Date:</span>
                             <span className="meta-value">{formatDate(report.createdAt)}</span>
                           </div>
@@ -419,7 +316,7 @@ const ReportListing = () => {
                       <div className="card-actions">
                         <button 
                           className="btn btn-outline"
-                          onClick={() => navigate(`/reports/${report._id}`)}
+                          onClick={() => goToReportDetails(report._id)}
                         >
                           View Full Report
                         </button>
@@ -428,8 +325,7 @@ const ReportListing = () => {
                   ))}
                 </div>
               )}
-            </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ import {
   FileText,
   ClipboardList,
   User,
+  Trophy,
   LogOut,
   Leaf,
   AlertTriangle,
@@ -75,6 +76,12 @@ const Sidebar = () => {
             <ClipboardList size={20} />
           </span>
           {!collapsed && <span className="nav-label">Reports</span>}
+        </NavLink>
+        <NavLink to="/leaderboard" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <span className="nav-icon">
+            <Trophy size={20} />
+          </span>
+          {!collapsed && <span className="nav-label">Leaderboard</span>}
         </NavLink>
         <NavLink to="/profile" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <span className="nav-icon">

@@ -24,12 +24,16 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token (user or admin)
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const isAdminRequest = typeof config.url === 'string' && config.url.includes('/admin');
+    const userToken = localStorage.getItem('accessToken');
+    const adminToken = localStorage.getItem('adminAccessToken');
+    const tokenToUse = isAdminRequest ? adminToken : userToken;
+
+    if (tokenToUse) {
+      config.headers.Authorization = `Bearer ${tokenToUse}`;
     }
     
     // Don't set Content-Type for FormData - let the browser handle it
@@ -54,6 +58,16 @@ api.interceptors.response.use(
 
     // Check if error is 401 and we haven't already tried to refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
+      const isAdminRequest = typeof originalRequest.url === 'string' && originalRequest.url.includes('/admin');
+
+      if (isAdminRequest) {
+        // Admin: no refresh flow, redirect to admin login
+        localStorage.removeItem('adminAccessToken');
+        localStorage.removeItem('adminRefreshToken');
+        window.location.href = '/admin/login';
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         // If we're already refreshing, queue this request
         return new Promise((resolve, reject) => {
@@ -142,6 +156,29 @@ export const authAPI = {
   
   // Health check
   healthCheck: () => api.get('/auth/health')
+};
+
+// Admin API helpers
+export const adminAPI = {
+  login: (credentials) => api.post('/admin/login', credentials),
+  verify: () => api.get('/admin/verify'),
+  // Reports
+  listReports: (params) => api.get('/admin/reports', { params }),
+  getReport: (id) => api.get(`/admin/reports/${id}`),
+  approveReport: (id, notes) => api.put(`/admin/reports/${id}/approve`, { notes }),
+  rejectReport: (id, notes) => api.put(`/admin/reports/${id}/reject`, { notes }),
+  // Users & badges
+  listUsers: (params) => api.get('/admin/users', { params }),
+  getUser: (id) => api.get(`/admin/users/${id}`),
+  awardPoints: (userId, points, reason) => api.post(`/admin/users/${userId}/points`, { points, reason }),
+  leaderboard: (limit) => api.get('/admin/users/leaderboard/all', { params: { limit } }),
+  listBadges: () => api.get('/admin/badges'),
+  createBadge: (data) => api.post('/admin/badges', data),
+  // Analytics
+  analyticsOverview: () => api.get('/admin/analytics/overview'),
+  analyticsReports: () => api.get('/admin/analytics/reports'),
+  analyticsUsers: () => api.get('/admin/analytics/users'),
+  analyticsGeographic: () => api.get('/admin/analytics/geographic')
 };
 
 // Helper function to check if user is authenticated

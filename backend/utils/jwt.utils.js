@@ -58,6 +58,38 @@ class JWTUtils {
   }
 
   /**
+   * Generate token pair from arbitrary payload (e.g., admin tokens)
+   * @param {Object} payload - JWT payload to embed in tokens
+   * @returns {Object} Access and refresh tokens
+   */
+  static generateTokenPairFromPayload(payload) {
+    const accessToken = this.generateAccessToken(payload);
+    const refreshToken = this.generateRefreshToken(payload);
+
+    return {
+      accessToken,
+      refreshToken,
+      expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m'
+    };
+  }
+
+  /**
+   * Generate admin token pair with admin role claims
+   * @param {Object} adminInfo - { email, name }
+   * @returns {Object} Access and refresh tokens with admin claims
+   */
+  static generateAdminTokenPair(adminInfo = {}) {
+    const payload = {
+      tokenType: 'admin',
+      role: 'admin',
+      adminEmail: adminInfo.email || 'admin@gmail.com',
+      adminName: adminInfo.name || 'Administrator'
+    };
+
+    return this.generateTokenPairFromPayload(payload);
+  }
+
+  /**
    * Verify access token
    * @param {String} token - Access token
    * @returns {Object} Decoded payload

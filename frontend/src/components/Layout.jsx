@@ -8,8 +8,6 @@ const Layout = () => {
     <div className="app-shell">
       <Sidebar />
       <div className="app-main">
-        <header className="app-header">
-        </header>
         <main className="app-content">
           <Outlet />
         </main>
