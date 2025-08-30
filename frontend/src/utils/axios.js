@@ -3,10 +3,8 @@ import axios from 'axios';
 // Create axios instance
 const api = axios.create({
   baseURL: 'http://localhost:5000/api',
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json'
-  }
+  timeout: 10000
+  // REMOVED: The line "headers: { 'Content-Type': 'application/json' }"
 });
 
 // Flag to prevent multiple refresh token requests
@@ -37,6 +35,12 @@ api.interceptors.request.use(
     if (tokenToUse) {
       config.headers.Authorization = `Bearer ${tokenToUse}`;
     }
+    
+    // Don't set Content-Type for FormData - let the browser handle it
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+    
     return config;
   },
   (error) => {

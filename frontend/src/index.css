@@ -15,9 +15,51 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Mangrove Theme Colors */
+  --mangrove-dark: #2d5a27;
+  --mangrove-medium: #4a7c59;
+  --mangrove-light: #6b8e23;
+  --mangrove-lighter: #8fbc8f;
+  --mangrove-lightest: #98fb98;
+  --mangrove-bg: #f8faf8;
+  --mangrove-hover: #e8f5e8;
+
+  /* Design System Variables */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+
+  /* Surface Colors */
+  --surface-elevated: #ffffff;
+  --border: #e5e7eb;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -35,35 +77,36 @@ body {
 }
 
 a {
-  color: #4caf50;
+  color: var(--mangrove-medium);
   text-decoration: none;
 }
 
 a:hover {
-  color: #45a049;
+  color: var(--mangrove-dark);
   text-decoration: underline;
 }
 
 button {
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #f8f9fa;
-  color: #212529;
+  background-color: var(--mangrove-bg);
+  color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all var(--transition-normal);
 }
 
 button:hover {
-  background-color: #e9ecef;
+  background-color: var(--mangrove-hover);
+  transform: translateY(-1px);
 }
 
 button:focus,
 button:focus-visible {
-  outline: 2px solid #4caf50;
+  outline: 2px solid var(--mangrove-medium);
   outline-offset: 2px;
 }
 
@@ -84,6 +127,47 @@ button:focus-visible {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Additional Mangrove Theme Utilities */
+.mangrove-gradient {
+  background: linear-gradient(135deg, var(--mangrove-dark) 0%, var(--mangrove-medium) 25%, var(--mangrove-light) 50%, var(--mangrove-lighter) 75%, var(--mangrove-lightest) 100%);
+}
+
+.mangrove-card {
+  background: var(--surface-elevated);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+  transition: all var(--transition-normal);
+}
+
+.mangrove-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl);
+  border-color: var(--mangrove-medium);
+}
+
+.mangrove-button {
+  background: linear-gradient(135deg, var(--mangrove-medium), var(--mangrove-light));
+  color: white;
+  border: none;
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-lg);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.mangrove-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  background: linear-gradient(135deg, var(--mangrove-dark), var(--mangrove-medium));
 }

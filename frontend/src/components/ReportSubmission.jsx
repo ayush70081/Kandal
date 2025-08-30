@@ -1,128 +1,173 @@
-import React, { useState, useEffect } from 'react';
-import { useDropzone } from 'react-dropzone';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import axios from '../utils/axios';
-import { useAuth } from '../contexts/AuthContext';
-import './ReportSubmission.css';
+import React, { useState, useEffect } from "react";
+import { useDropzone } from "react-dropzone";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import axios from "../utils/axios";
+import { useAuth } from "../contexts/AuthContext";
+import "./ReportSubmission.css";
 
 const ReportSubmission = () => {
   const [formData, setFormData] = useState({
-    title: '',
-    incidentType: 'illegal_cutting',
-    description: '',
-    severity: 'medium',
+    title: "",
+    incidentType: "illegal_cutting",
+    description: "",
+    severity: "medium",
     location: {
       latitude: null,
-      longitude: null
-    }
+      longitude: null,
+    },
   });
-  
+
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [previewPhotos, setPreviewPhotos] = useState([]);
-  
+  const [analysisResult, setAnalysisResult] = useState("");
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+
   const { user } = useAuth();
   const navigate = useNavigate();
 
   // Incident type options
   const incidentTypes = [
-    { value: 'illegal_cutting', label: 'Illegal Tree Cutting' },
-    { value: 'dumping', label: 'Waste Dumping' },
-    { value: 'pollution', label: 'Water/Soil Pollution' },
-    { value: 'land_reclamation', label: 'Land Reclamation' },
-    { value: 'wildlife_disturbance', label: 'Wildlife Disturbance' },
-    { value: 'erosion', label: 'Coastal Erosion' },
-    { value: 'oil_spill', label: 'Oil Spill' },
-    { value: 'construction', label: 'Unauthorized Construction' },
-    { value: 'other', label: 'Other Environmental Issue' }
+    { value: "illegal_cutting", label: "Illegal Tree Cutting" },
+    { value: "dumping", label: "Waste Dumping" },
+    { value: "pollution", label: "Water/Soil Pollution" },
+    { value: "land_reclamation", label: "Land Reclamation" },
+    { value: "wildlife_disturbance", label: "Wildlife Disturbance" },
+    { value: "erosion", label: "Coastal Erosion" },
+    { value: "oil_spill", label: "Oil Spill" },
+    { value: "construction", label: "Unauthorized Construction" },
+    { value: "other", label: "Other Environmental Issue" },
   ];
 
   // Severity options
   const severityOptions = [
-    { value: 'low', label: 'Low Priority', description: 'Minor incident, no immediate threat' },
-    { value: 'medium', label: 'Medium Priority', description: 'Moderate damage, requires attention' },
-    { value: 'high', label: 'High Priority', description: 'Significant damage, urgent action needed' },
-    { value: 'critical', label: 'Critical Priority', description: 'Severe damage, immediate response required' }
+    {
+      value: "low",
+      label: "Low Priority",
+      description: "Minor incident, no immediate threat",
+    },
+    {
+      value: "medium",
+      label: "Medium Priority",
+      description: "Moderate damage, requires attention",
+    },
+    {
+      value: "high",
+      label: "High Priority",
+      description: "Significant damage, urgent action needed",
+    },
+    {
+      value: "critical",
+      label: "Critical Priority",
+      description: "Severe damage, immediate response required",
+    },
   ];
+
+  // Analyze Image
+  const analyzeImage = async (file) => {
+    if (!file) return;
+
+    setAnalysisLoading(true);
+    setAnalysisResult("");
+
+    const formData = new FormData();
+    // CHANGE THIS LINE:
+    formData.append("image", file); // Use 'image' instead of 'photos'
+
+    try {
+      const response = await axios.post("/reports/analyze-image", formData);
+      setAnalysisResult(response.data.analysis);
+    } catch (error) {
+      console.error("Image analysis error:", error);
+      toast.error("Could not analyze the image.");
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
 
   // Get current location
   const getCurrentLocation = () => {
-    if (locationLoading) return; // Prevent multiple simultaneous calls
-    
+    if (locationLoading) return;
+
     setLocationLoading(true);
-    
-    // Basic capability and context checks
-    if (!('geolocation' in navigator)) {
+
+    if (!("geolocation" in navigator)) {
       setLocationLoading(false);
-      toast.error('Geolocation is not supported by this browser.');
+      toast.error("Geolocation is not supported by this browser.");
       return;
     }
 
-    // Geolocation requires HTTPS except on localhost
-    const hostname = window.location.hostname || '';
-    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+    const hostname = window.location.hostname || "";
+    const isLocalhost =
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "::1";
     if (!window.isSecureContext && !isLocalhost) {
       setLocationLoading(false);
-      toast.error('Geolocation requires HTTPS or localhost. Please use a secure context.');
+      toast.error(
+        "Geolocation requires HTTPS or localhost. Please use a secure context."
+      );
       return;
     }
 
-    let hasCompleted = false; // Flag to prevent double execution
+    let hasCompleted = false;
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
         if (hasCompleted) return;
         hasCompleted = true;
-        
-        setFormData(prev => ({
+
+        setFormData((prev) => ({
           ...prev,
           location: {
             latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          }
+            longitude: position.coords.longitude,
+          },
         }));
         setLocationLoading(false);
-        toast.success('Location coordinates captured successfully!');
+        toast.success("Location coordinates captured successfully!");
       },
       (error) => {
         if (hasCompleted) return;
         hasCompleted = true;
-        
-        // Log useful error details
-        console.error('Geolocation error:', {
+
+        console.error("Geolocation error:", {
           code: error?.code,
-          message: error?.message
+          message: error?.message,
         });
         setLocationLoading(false);
-        
-        let errorMessage = 'Unable to get location. Please enter manually.';
-        
-        // Use numeric codes per spec: 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT
+
+        let errorMessage = "Unable to get location. Please enter manually.";
+
         switch (error?.code) {
           case 1:
-            errorMessage = 'Location access denied. Please enable location permissions and try again.';
+            errorMessage =
+              "Location access denied. Please enable location permissions and try again.";
             break;
           case 2:
-            errorMessage = 'Location information unavailable. Please enter coordinates manually.';
+            errorMessage =
+              "Location information unavailable. Please enter coordinates manually.";
             break;
           case 3:
-            errorMessage = 'Location request timed out. Please try again or enter manually.';
+            errorMessage =
+              "Location request timed out. Please try again or enter manually.";
             break;
           default:
-            errorMessage = error?.message || 'Unable to get location. Please enter coordinates manually.';
+            errorMessage =
+              error?.message ||
+              "Unable to get location. Please enter coordinates manually.";
             break;
         }
-        
+
         toast.error(errorMessage);
       },
       {
-        // Adjust accuracy and timeouts as reasonable defaults
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 60000
+        maximumAge: 60000,
       }
     );
   };
@@ -130,148 +175,152 @@ const ReportSubmission = () => {
   // Handle form input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    
-    if (error) setError('');
-  };
 
-  // Manual coordinate editing is disabled by design to ensure trusted values
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    if (error) setError("");
+  };
 
   // File upload handling
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.heic']
+      "image/*": [".jpeg", ".jpg", ".png", ".webp", ".heic"],
     },
     maxFiles: 5,
-    maxSize: 10 * 1024 * 1024, // 10MB
+    maxSize: 10 * 1024 * 1024,
     onDrop: (acceptedFiles) => {
-      setPhotos(prev => [...prev, ...acceptedFiles]);
-      
-      // Create preview URLs
-      const newPreviews = acceptedFiles.map(file => ({
+      setPhotos((prev) => [...prev, ...acceptedFiles]);
+
+      if (acceptedFiles.length > 0) {
+        analyzeImage(acceptedFiles[0]);
+      }
+
+      const newPreviews = acceptedFiles.map((file) => ({
         file,
         url: URL.createObjectURL(file),
-        id: Math.random().toString(36).substr(2, 9)
+        id: Math.random().toString(36).substr(2, 9),
       }));
-      
-      setPreviewPhotos(prev => [...prev, ...newPreviews]);
+
+      setPreviewPhotos((prev) => [...prev, ...newPreviews]);
     },
     onDropRejected: (rejectedFiles) => {
-      rejectedFiles.forEach(rejection => {
+      rejectedFiles.forEach((rejection) => {
         const { file, errors } = rejection;
-        errors.forEach(error => {
-          if (error.code === 'file-too-large') {
-            toast.error(`File ${file.name} is too large. Maximum size is 10MB.`);
-          } else if (error.code === 'file-invalid-type') {
+        errors.forEach((error) => {
+          if (error.code === "file-too-large") {
+            toast.error(
+              `File ${file.name} is too large. Maximum size is 10MB.`
+            );
+          } else if (error.code === "file-invalid-type") {
             toast.error(`File ${file.name} is not a supported image format.`);
-          } else if (error.code === 'too-many-files') {
-            toast.error('Maximum 5 photos allowed.');
+          } else if (error.code === "too-many-files") {
+            toast.error("Maximum 5 photos allowed.");
           }
         });
       });
-    }
+    },
   });
 
   // Remove photo
   const removePhoto = (id) => {
-    setPreviewPhotos(prev => {
-      const photoToRemove = prev.find(p => p.id === id);
+    setPreviewPhotos((prev) => {
+      const photoToRemove = prev.find((p) => p.id === id);
       if (photoToRemove) {
         URL.revokeObjectURL(photoToRemove.url);
       }
-      return prev.filter(p => p.id !== id);
+      return prev.filter((p) => p.id !== id);
     });
-    
-    setPhotos(prev => prev.filter((_, index) => 
-      previewPhotos[index] && previewPhotos[index].id !== id
-    ));
+
+    setPhotos((prev) =>
+      prev.filter(
+        (_, index) => previewPhotos[index] && previewPhotos[index].id !== id
+      )
+    );
   };
 
   // Form validation
   const validateForm = () => {
     if (!formData.title.trim()) {
-      setError('Title is required');
+      setError("Title is required");
       return false;
     }
-    
+
     if (!formData.description.trim() || formData.description.length < 10) {
-      setError('Description must be at least 10 characters long');
+      setError("Description must be at least 10 characters long");
       return false;
     }
-    
+
     if (!formData.location.latitude || !formData.location.longitude) {
-      setError('Location coordinates are required. Please capture your location.');
+      setError(
+        "Location coordinates are required. Please capture your location."
+      );
       return false;
     }
-    
+
     if (photos.length === 0) {
-      setError('At least one photo is required as evidence');
+      setError("At least one photo is required as evidence");
       return false;
     }
-    
+
     return true;
   };
 
   // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     setLoading(true);
-    setError('');
-    
+    setError("");
+
     try {
-      // Prepare form data for submission
       const submitData = new FormData();
-      
-      // Add form fields
-      submitData.append('title', formData.title);
-      submitData.append('incidentType', formData.incidentType);
-      submitData.append('description', formData.description);
-      submitData.append('severity', formData.severity);
-      submitData.append('location', JSON.stringify(formData.location));
-      
-      // Add photos
+
+      submitData.append("title", formData.title);
+      submitData.append("incidentType", formData.incidentType);
+      submitData.append("description", formData.description);
+      submitData.append("severity", formData.severity);
+      submitData.append("location", JSON.stringify(formData.location));
+
       photos.forEach((photo) => {
-        submitData.append('photos', photo);
+        submitData.append("photos", photo);
       });
-      
-      // Submit to API
-      const response = await axios.post('/reports/submit', submitData, {
+
+      const response = await axios.post("/reports/submit", submitData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+          "Content-Type": "multipart/form-data",
+        },
       });
-      
+
       if (response.data) {
-        toast.success(`Report submitted successfully! You earned ${response.data.pointsAwarded} points.`);
-        
-        // Clean up preview URLs
-        previewPhotos.forEach(photo => {
+        toast.success(
+          `Report submitted successfully! You earned ${response.data.pointsAwarded} points.`
+        );
+
+        previewPhotos.forEach((photo) => {
           URL.revokeObjectURL(photo.url);
         });
-        
-        // Navigate to reports list or report detail
+
         navigate(`/reports/${response.data.report._id}`);
       }
-      
     } catch (error) {
-      console.error('Error submitting report:', error);
-      
+      console.error("Error submitting report:", error);
+
       if (error.response?.data?.details) {
-        // Handle validation errors
         const details = error.response.data.details;
-        const errorMessages = details.map(detail => detail.msg).join(', ');
+        const errorMessages = details.map((detail) => detail.msg).join(", ");
         setError(errorMessages);
       } else {
-        setError(error.response?.data?.message || 'Failed to submit report. Please try again.');
+        setError(
+          error.response?.data?.message ||
+            "Failed to submit report. Please try again."
+        );
       }
     } finally {
       setLoading(false);
@@ -281,7 +330,7 @@ const ReportSubmission = () => {
   // Cleanup preview URLs on unmount
   useEffect(() => {
     return () => {
-      previewPhotos.forEach(photo => {
+      previewPhotos.forEach((photo) => {
         URL.revokeObjectURL(photo.url);
       });
     };
@@ -290,20 +339,18 @@ const ReportSubmission = () => {
   return (
     <div className="report-submission-page">
       <div className="page-container">
-        {/* Header Section */}
         <div className="page-header">
           <div className="header-content">
             <h1 className="page-title">Environmental Incident Report</h1>
             <p className="page-subtitle">
-              Submit detailed information about environmental incidents to help protect mangrove ecosystems
+              Submit detailed information about environmental incidents to help
+              protect mangrove ecosystems
             </p>
           </div>
         </div>
 
-        {/* Main Form */}
         <div className="form-container">
           <form onSubmit={handleSubmit} className="incident-form">
-            {/* Error Alert */}
             {error && (
               <div className="alert alert-error">
                 <div className="alert-content">
@@ -312,10 +359,9 @@ const ReportSubmission = () => {
               </div>
             )}
 
-            {/* Basic Information Section */}
             <div className="form-section">
               <h2 className="section-title">Basic Information</h2>
-              
+
               <div className="form-grid">
                 <div className="form-field full-width">
                   <label className="field-label" htmlFor="title">
@@ -342,10 +388,13 @@ const ReportSubmission = () => {
                     Incident Type <span className="required">*</span>
                   </label>
                   <div className="radio-grid">
-                    {incidentTypes.map(type => (
-                      <label key={type.value} className={`radio-card ${
-                        formData.incidentType === type.value ? 'selected' : ''
-                      }`}>
+                    {incidentTypes.map((type) => (
+                      <label
+                        key={type.value}
+                        className={`radio-card ${
+                          formData.incidentType === type.value ? "selected" : ""
+                        }`}
+                      >
                         <input
                           type="radio"
                           name="incidentType"
@@ -367,10 +416,13 @@ const ReportSubmission = () => {
                     Priority Level <span className="required">*</span>
                   </label>
                   <div className="priority-options">
-                    {severityOptions.map(option => (
-                      <label key={option.value} className={`priority-card ${
-                        formData.severity === option.value ? 'selected' : ''
-                      } priority-${option.value}`}>
+                    {severityOptions.map((option) => (
+                      <label
+                        key={option.value}
+                        className={`priority-card ${
+                          formData.severity === option.value ? "selected" : ""
+                        } priority-${option.value}`}
+                      >
                         <input
                           type="radio"
                           name="severity"
@@ -381,7 +433,9 @@ const ReportSubmission = () => {
                         />
                         <div className="priority-content">
                           <span className="priority-label">{option.label}</span>
-                          <span className="priority-description">{option.description}</span>
+                          <span className="priority-description">
+                            {option.description}
+                          </span>
                         </div>
                       </label>
                     ))}
@@ -390,10 +444,9 @@ const ReportSubmission = () => {
               </div>
             </div>
 
-            {/* Description Section */}
             <div className="form-section">
               <h2 className="section-title">Incident Details</h2>
-              
+
               <div className="form-field full-width">
                 <label className="field-label" htmlFor="description">
                   Detailed Description <span className="required">*</span>
@@ -410,29 +463,33 @@ const ReportSubmission = () => {
                   required
                 />
                 <div className="field-info">
-                  {formData.description.length}/2000 characters (minimum 10 required)
+                  {formData.description.length}/2000 characters (minimum 10
+                  required)
                 </div>
               </div>
             </div>
 
-            {/* Location Section */}
             <div className="form-section">
               <h2 className="section-title">Location Information</h2>
-              
+
               <div className="location-capture">
                 <button
                   type="button"
-                  className={`location-button ${locationLoading ? 'loading' : ''}`}
+                  className={`location-button ${
+                    locationLoading ? "loading" : ""
+                  }`}
                   onClick={getCurrentLocation}
                   disabled={locationLoading}
                 >
-                  {locationLoading ? 'Capturing Location...' : 'Capture Current Location'}
+                  {locationLoading
+                    ? "Capturing Location..."
+                    : "Capture Current Location"}
                 </button>
                 <p className="location-help">
                   Click to automatically capture your current GPS coordinates
                 </p>
               </div>
-              
+
               <div className="form-grid">
                 <div className="form-field">
                   <label className="field-label" htmlFor="latitude">
@@ -447,9 +504,9 @@ const ReportSubmission = () => {
                     className="form-input"
                     placeholder="Auto-Detected"
                     value={
-                      typeof formData.location.latitude === 'number'
+                      typeof formData.location.latitude === "number"
                         ? formData.location.latitude.toFixed(6)
-                        : ''
+                        : ""
                     }
                   />
                 </div>
@@ -466,25 +523,25 @@ const ReportSubmission = () => {
                     className="form-input"
                     placeholder="Auto-Detected"
                     value={
-                      typeof formData.location.longitude === 'number'
+                      typeof formData.location.longitude === "number"
                         ? formData.location.longitude.toFixed(6)
-                        : ''
+                        : ""
                     }
                   />
                 </div>
               </div>
-
-
             </div>
 
-            {/* Evidence Section */}
             <div className="form-section">
               <h2 className="section-title">Photo Evidence</h2>
-              
+
               <div className="upload-section">
-                <div {...getRootProps()} className={`file-dropzone ${
-                  isDragActive ? 'drag-active' : ''
-                }`}>
+                <div
+                  {...getRootProps()}
+                  className={`file-dropzone ${
+                    isDragActive ? "drag-active" : ""
+                  }`}
+                >
                   <input {...getInputProps()} />
                   <div className="dropzone-content">
                     <div className="upload-icon">
@@ -493,23 +550,27 @@ const ReportSubmission = () => {
                     <div className="upload-text">
                       <p className="upload-primary">
                         {isDragActive
-                          ? 'Drop photos here to upload'
-                          : 'Drag and drop photos here, or click to browse'
-                        }
+                          ? "Drop photos here to upload"
+                          : "Drag and drop photos here, or click to browse"}
                       </p>
                       <p className="upload-secondary">
-                        Maximum 5 photos, 10MB each • Supported: JPEG, PNG, WebP, HEIC
+                        Maximum 5 photos, 10MB each • Supported: JPEG, PNG,
+                        WebP, HEIC
                       </p>
                     </div>
                   </div>
                 </div>
-                
+
                 {previewPhotos.length > 0 && (
                   <div className="photo-grid">
                     {previewPhotos.map((photo) => (
                       <div key={photo.id} className="photo-item">
                         <div className="photo-wrapper">
-                          <img src={photo.url} alt="Evidence" className="photo-preview" />
+                          <img
+                            src={photo.url}
+                            alt="Evidence"
+                            className="photo-preview"
+                          />
                           <button
                             type="button"
                             className="photo-remove"
@@ -526,24 +587,37 @@ const ReportSubmission = () => {
               </div>
             </div>
 
+            {(analysisLoading || analysisResult) && (
+              <div className="form-section">
+                <h2 className="section-title">Image Analysis</h2>
+                {analysisLoading && (
+                  <div className="loading-state">Loading analysis...</div>
+                )}
+                {analysisResult && (
+                  <div className="analysis-result">
+                    {analysisResult.split("\n").map((line, index) => (
+                      <p key={index}>{line}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
-
-            {/* Form Actions */}
             <div className="form-actions">
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => navigate('/home')}
+                onClick={() => navigate("/home")}
                 disabled={loading}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className={`btn btn-primary ${loading ? 'loading' : ''}`}
+                className={`btn btn-primary ${loading ? "loading" : ""}`}
                 disabled={loading}
               >
-                {loading ? 'Submitting Report...' : 'Submit Report'}
+                {loading ? "Submitting Report..." : "Submit Report"}
               </button>
             </div>
           </form>

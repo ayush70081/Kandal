@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const crypto = require('crypto');
 
-// Configure multer for file uploads
+// Configure multer for file uploads (Disk Storage for report submission)
 const storage = multer.diskStorage({
   destination: async function (req, file, cb) {
     const uploadPath = path.join(__dirname, '../uploads/temp');
@@ -17,7 +17,6 @@ const storage = multer.diskStorage({
     cb(null, uploadPath);
   },
   filename: function (req, file, cb) {
-    // Generate unique filename
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const fileName = crypto.randomBytes(16).toString('hex') + '-' + uniqueSuffix + path.extname(file.originalname);
     cb(null, fileName);
@@ -27,7 +26,6 @@ const storage = multer.diskStorage({
 // File filter for images only
 const fileFilter = (req, file, cb) => {
   const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
-  
   if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
@@ -35,7 +33,7 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Configure multer
+// Configure multer (Disk Storage)
 const upload = multer({
   storage: storage,
   limits: {
@@ -44,6 +42,15 @@ const upload = multer({
   },
   fileFilter: fileFilter
 });
+
+// NEW: Configure multer for in-memory storage for analysis
+const memoryStorage = multer.memoryStorage();
+const uploadMemory = multer({
+  storage: memoryStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: fileFilter
+});
+
 
 // Middleware for processing uploaded images
 const processImages = async (req, res, next) => {
@@ -65,14 +72,12 @@ const processImages = async (req, res, next) => {
       const fileExtension = path.extname(file.originalname).toLowerCase();
       const baseName = path.basename(file.filename, path.extname(file.filename));
       
-      // Define final paths
       const finalFileName = `${baseName}.webp`;
       const thumbnailFileName = `thumb_${baseName}.webp`;
       const finalPath = path.join(reportsPath, finalFileName);
       const thumbnailPath = path.join(thumbnailsPath, thumbnailFileName);
 
       try {
-        // Extract EXIF data before processing
         let metadata = {};
         try {
           const exifData = await exifr.parse(tempPath);
@@ -93,7 +98,6 @@ const processImages = async (req, res, next) => {
           console.log('Could not extract EXIF data:', exifError.message);
         }
 
-        // Process main image
         await sharp(tempPath)
           .resize(1920, 1080, { 
             fit: 'inside',
@@ -102,7 +106,6 @@ const processImages = async (req, res, next) => {
           .webp({ quality: 85 })
           .toFile(finalPath);
 
-        // Create thumbnail
         await sharp(tempPath)
           .resize(300, 200, { 
             fit: 'cover' 
@@ -110,7 +113,6 @@ const processImages = async (req, res, next) => {
           .webp({ quality: 80 })
           .toFile(thumbnailPath);
 
-        // Get file stats
         const stats = await fs.stat(finalPath);
         
         const processedFile = {
@@ -125,7 +127,6 @@ const processImages = async (req, res, next) => {
 
         processedFiles.push(processedFile);
 
-        // Clean up temp file
         try {
           await fs.unlink(tempPath);
         } catch (unlinkError) {
@@ -134,7 +135,6 @@ const processImages = async (req, res, next) => {
 
       } catch (processError) {
         console.error('Error processing image:', processError);
-        // Clean up temp file in case of error
         try {
           await fs.unlink(tempPath);
         } catch (unlinkError) {
@@ -144,7 +144,6 @@ const processImages = async (req, res, next) => {
       }
     }
 
-    // Add processed files to request object
     req.processedFiles = processedFiles;
     next();
 
@@ -159,7 +158,13 @@ const processImages = async (req, res, next) => {
 
 // Error handling middleware for multer
 const handleUploadError = (error, req, res, next) => {
+  console.log('Upload error occurred:', error);
+  console.log('Error type:', error.constructor.name);
+  console.log('Error code:', error.code);
+  console.log('Error message:', error.message);
+  
   if (error instanceof multer.MulterError) {
+    console.log('Multer error detected');
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
         error: 'File too large',
@@ -187,6 +192,7 @@ const handleUploadError = (error, req, res, next) => {
     });
   }
 
+  console.log('Passing error to next middleware');
   next(error);
 };
 
@@ -197,7 +203,6 @@ const deleteUploadedFiles = async (filePaths) => {
       const fullPath = path.join(__dirname, '..', filePath);
       await fs.unlink(fullPath);
       
-      // Also delete thumbnail if exists
       const thumbnailPath = filePath.replace('uploads/reports/', 'uploads/thumbnails/thumb_');
       const fullThumbnailPath = path.join(__dirname, '..', thumbnailPath);
       try {
@@ -216,12 +221,10 @@ const validateImage = async (filePath) => {
   try {
     const metadata = await sharp(filePath).metadata();
     
-    // Check minimum dimensions
     if (metadata.width < 200 || metadata.height < 200) {
       throw new Error('Image must be at least 200x200 pixels');
     }
     
-    // Check if image is corrupted
     if (!metadata.format) {
       throw new Error('Invalid or corrupted image file');
     }
@@ -233,7 +236,8 @@ const validateImage = async (filePath) => {
 };
 
 module.exports = {
-  upload: upload.array('photos', 5), // Allow up to 5 photos
+  upload: upload.array('photos', 5),
+  uploadMemory,
   processImages,
   handleUploadError,
   deleteUploadedFiles,
