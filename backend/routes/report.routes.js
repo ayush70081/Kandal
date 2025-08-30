@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, param, query } = require('express-validator');
 const { authenticateToken } = require('../middleware/auth.middleware');
-const { upload, processImages, handleUploadError } = require('../middleware/upload.middleware');
+const { upload, uploadMemory, processImages, handleUploadError } = require('../middleware/upload.middleware');
 const {
   submitReport,
   getReports,
@@ -10,7 +10,8 @@ const {
   addComment,
   toggleUpvote,
   getReportStats,
-  getNearbyReports
+  getNearbyReports,
+  analyzeImage
 } = require('../controllers/report.controller');
 
 const router = express.Router();
@@ -24,7 +25,7 @@ const submitReportValidation = [
     .trim()
     .isLength({ min: 5, max: 200 })
     .withMessage('Title must be between 5 and 200 characters'),
-  
+
   body('incidentType')
     .isIn([
       'illegal_cutting',
@@ -38,16 +39,16 @@ const submitReportValidation = [
       'other'
     ])
     .withMessage('Invalid incident type'),
-  
+
   body('description')
     .trim()
     .isLength({ min: 10, max: 2000 })
     .withMessage('Description must be between 10 and 2000 characters'),
-  
+
   body('severity')
     .isIn(['low', 'medium', 'high', 'critical'])
     .withMessage('Invalid severity level'),
-  
+
   body('location')
     .custom((value) => {
       try {
@@ -66,7 +67,7 @@ const submitReportValidation = [
         throw new Error('Invalid location format');
       }
     }),
-  
+
 
 ];
 
@@ -75,11 +76,11 @@ const validateReportValidation = [
   param('id')
     .isMongoId()
     .withMessage('Invalid report ID'),
-  
+
   body('status')
     .isIn(['pending', 'under_review', 'verified', 'false_positive', 'resolved'])
     .withMessage('Invalid status'),
-  
+
   body('validationNotes')
     .optional()
     .trim()
@@ -92,7 +93,7 @@ const addCommentValidation = [
   param('id')
     .isMongoId()
     .withMessage('Invalid report ID'),
-  
+
   body('text')
     .trim()
     .isLength({ min: 1, max: 1000 })
@@ -117,19 +118,27 @@ router.post('/submit',
   submitReport
 );
 
+// New route for image analysis
+router.post('/analyze-image',
+    uploadMemory.single('image'),
+    handleUploadError,
+    analyzeImage
+);
+
+
 // Get reports with filtering and pagination
-router.get('/', 
+router.get('/',
   [
     query('page')
       .optional()
       .isInt({ min: 1 })
       .withMessage('Page must be a positive integer'),
-    
+
     query('limit')
       .optional()
       .isInt({ min: 1, max: 100 })
       .withMessage('Limit must be between 1 and 100'),
-    
+
     query('incidentType')
       .optional()
       .isIn([
@@ -144,37 +153,37 @@ router.get('/',
         'other'
       ])
       .withMessage('Invalid incident type'),
-    
+
     query('severity')
       .optional()
       .isIn(['low', 'medium', 'high', 'critical'])
       .withMessage('Invalid severity level'),
-    
+
     query('status')
       .optional()
       .isIn(['pending', 'under_review', 'verified', 'false_positive', 'resolved'])
       .withMessage('Invalid status'),
-    
+
     query('lat')
       .optional()
       .isFloat({ min: -90, max: 90 })
       .withMessage('Invalid latitude'),
-    
+
     query('lng')
       .optional()
       .isFloat({ min: -180, max: 180 })
       .withMessage('Invalid longitude'),
-    
+
     query('radius')
       .optional()
       .isFloat({ min: 0.1, max: 1000 })
       .withMessage('Radius must be between 0.1 and 1000 km'),
-    
+
     query('sortBy')
       .optional()
       .isIn(['createdAt', 'severity', 'status', 'upvoteCount', 'viewCount'])
       .withMessage('Invalid sort field'),
-    
+
     query('sortOrder')
       .optional()
       .isIn(['asc', 'desc'])
@@ -192,11 +201,11 @@ router.get('/nearby',
     query('lat')
       .isFloat({ min: -90, max: 90 })
       .withMessage('Valid latitude is required'),
-    
+
     query('lng')
       .isFloat({ min: -180, max: 180 })
       .withMessage('Valid longitude is required'),
-    
+
     query('radius')
       .optional()
       .isFloat({ min: 0.1, max: 100 })
@@ -216,5 +225,14 @@ router.post('/:id/comments', addCommentValidation, addComment);
 
 // Toggle upvote on report
 router.post('/:id/upvote', mongoIdValidation, toggleUpvote);
+
+// Submit a new report
+router.post('/submit',
+  upload, // Uses original disk storage
+  processImages,
+  // submitReportValidation,
+  handleUploadError,
+  submitReport
+);
 
 module.exports = router;

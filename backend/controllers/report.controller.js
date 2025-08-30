@@ -4,6 +4,7 @@ const Badge = require('../models/badge.model');
 const Notification = require('../models/notification.model');
 const { validationResult } = require('express-validator');
 const { deleteUploadedFiles } = require('../middleware/upload.middleware');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Submit a new report
 const submitReport = async (req, res) => {
@@ -30,7 +31,7 @@ const submitReport = async (req, res) => {
 
     // Parse location coordinates
     const coordinates = JSON.parse(location);
-    
+
     // Prepare report data
     const reportData = {
       title,
@@ -64,7 +65,7 @@ const submitReport = async (req, res) => {
     for (const badge of reportingBadges) {
       await req.user.awardBadge(badge._id);
       await badge.incrementEarnedCount();
-      
+
       // Create badge notification
       await Notification.createBadgeEarnedNotification(req.user.id, badge._id, badge.name);
     }
@@ -74,7 +75,7 @@ const submitReport = async (req, res) => {
     for (const badge of pointsBadges) {
       await req.user.awardBadge(badge._id);
       await badge.incrementEarnedCount();
-      
+
       // Create badge notification
       await Notification.createBadgeEarnedNotification(req.user.id, badge._id, badge.name);
     }
@@ -84,11 +85,11 @@ const submitReport = async (req, res) => {
 
     // If critical report, notify administrators
     if (severity === 'critical') {
-      const admins = await User.find({ 
+      const admins = await User.find({
         role: { $in: ['government', 'ngo'] },
-        'preferences.emailNotifications': true 
+        'preferences.emailNotifications': true
       });
-      
+
       if (admins.length > 0) {
         await Notification.createUrgentReportNotification(
           admins.map(admin => admin._id),
@@ -109,7 +110,7 @@ const submitReport = async (req, res) => {
 
   } catch (error) {
     console.error('Error submitting report:', error);
-    
+
     // Clean up uploaded files if report creation fails
     if (req.processedFiles) {
       await deleteUploadedFiles(req.processedFiles.map(f => f.path));
@@ -120,6 +121,76 @@ const submitReport = async (req, res) => {
       message: error.message
     });
   }
+};
+
+// New function to analyze image
+const analyzeImage = async (req, res) => {
+    console.log('Analyze image called');
+    console.log('Request file:', req.file);
+    console.log('Request headers:', req.headers);
+    
+    if (!req.file) {
+        console.log('No file provided');
+        return res.status(400).json({ error: 'No image file provided.' });
+    }
+
+    console.log('File received:', {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        buffer: req.file.buffer ? 'Buffer present' : 'No buffer'
+    });
+
+    try {
+        if (!process.env.GEMINI_API_KEY) {
+            console.error('GEMINI_API_KEY not found in environment variables');
+            return res.status(500).json({ error: 'API key not configured.' });
+        }
+
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        const prompt = `
+Analyze the image provided.
+
+First, determine if the image is of a mangrove forest or a coastal environment where mangroves grow.
+
+If it is, then check for any of the following threats:
+- Cut down or felled trees
+- Fire or smoke indicating burning trees
+- Oil spillage in the water
+- Waste or garbage dumping
+- Any other visible signs of damage or destruction.
+
+If a threat is detected, describe the threat and estimate its approximate severity (e.g., low, medium, high). For example: "Threat detected: A few cut trees are visible. Approximate threat level: Low." or "Threat detected: A large area of the forest is on fire. Approximate threat level: High."
+
+If no threat is detected but it is a mangrove, identify the species and provide a short, 5-line summary including:
+- Species name
+- Key benefits
+- Common threats
+- Main locations where it is found.
+
+If the image is not of a mangrove environment, respond with: 'The uploaded image does not appear to be a mangrove area. Please upload photos of potential threats to mangrove forests.'
+`;
+
+        const imagePart = {
+            inlineData: {
+                data: req.file.buffer.toString("base64"),
+                mimeType: req.file.mimetype,
+            },
+        };
+
+        console.log('Calling Gemini API...');
+        const result = await model.generateContent([prompt, imagePart]);
+        const response = await result.response;
+        const text = response.text();
+
+        console.log('Analysis completed successfully');
+        res.json({ analysis: text });
+    } catch (error) {
+        console.error('Error analyzing image:', error);
+        res.status(500).json({ error: 'Failed to analyze image.' });
+    }
 };
 
 // Get reports with filtering and pagination
@@ -143,7 +214,7 @@ const getReports = async (req, res) => {
 
     // Build filter object
     const filter = {};
-    
+
     if (incidentType) filter.incidentType = incidentType;
     if (severity) filter.severity = severity;
     if (status) filter.status = status;
@@ -158,12 +229,12 @@ const getReports = async (req, res) => {
 
     // Geospatial filter
     let query = Report.find(filter);
-    
+
     if (lat && lng && radius) {
       const longitude = parseFloat(lng);
       const latitude = parseFloat(lat);
       const radiusInMeters = parseFloat(radius) * 1000; // Convert km to meters
-      
+
       query = Report.find({
         ...filter,
         location: {
@@ -395,10 +466,10 @@ const toggleUpvote = async (req, res) => {
       });
     } else {
       await report.addUpvote(req.user.id);
-      
+
       // Award points for upvoting
       await req.user.awardPoints(1, 'Upvote given');
-      
+
       // Create notification for report owner (if not upvoting own report)
       if (!report.reporter.equals(req.user.id)) {
         await Notification.create({
@@ -504,5 +575,6 @@ module.exports = {
   addComment,
   toggleUpvote,
   getReportStats,
-  getNearbyReports
+  getNearbyReports,
+  analyzeImage
 };

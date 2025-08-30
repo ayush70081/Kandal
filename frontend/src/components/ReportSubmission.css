@@ -512,6 +512,24 @@
   animation: spin 1s linear infinite;
 }
 
+.analysis-result {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+.analysis-result p {
+    margin: 0 0 0.5rem 0;
+    line-height: 1.6;
+}
+
+.analysis-result p:last-child {
+    margin-bottom: 0;
+}
+
+
 /* Animations */
 @keyframes spin {
   0% { transform: translateY(-50%) rotate(0deg); }
@@ -523,51 +541,51 @@
   .page-container {
     box-shadow: none;
   }
-  
+
   .page-header {
     padding: 2rem 1rem;
   }
-  
+
   .page-title {
     font-size: 2rem;
   }
-  
+
   .form-container {
     padding: 1rem;
   }
-  
+
   .form-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  
+
   .radio-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .priority-content {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
   }
-  
+
   .priority-description {
     text-align: left;
     max-width: 100%;
   }
-  
+
   .form-actions {
     flex-direction: column-reverse;
   }
-  
+
   .btn {
     width: 100%;
   }
-  
+
   .photo-grid {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
-  
+
   .photo-preview {
     height: 120px;
   }
@@ -577,15 +595,15 @@
   .page-title {
     font-size: 1.75rem;
   }
-  
+
   .section-title {
     font-size: 1.25rem;
   }
-  
+
   .file-dropzone {
     padding: 2rem 1rem;
   }
-  
+
   .upload-primary {
     font-size: 1rem;
   }
