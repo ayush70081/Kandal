@@ -17,9 +17,9 @@ const LandingRoute = () => {
     );
   }
 
-  // If authenticated, redirect to dashboard
+  // If authenticated, redirect to reports page
   if (isAuthenticated) {
-    return <Navigate to="/home" replace />;
+    return <Navigate to="/reports" replace />;
   }
 
   // If not authenticated, show landing page

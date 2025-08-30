@@ -42,7 +42,7 @@ export const withProtectedRoute = (Component, redirectTo = "/login") => {
 };
 
 // Public route component (redirects authenticated users)
-export const PublicRoute = ({ children, redirectTo = "/home" }) => {
+export const PublicRoute = ({ children, redirectTo = "/reports" }) => {
   const { isAuthenticated, isLoading } = useAuth();
 
   // Show loading spinner while checking authentication
@@ -54,7 +54,7 @@ export const PublicRoute = ({ children, redirectTo = "/home" }) => {
     );
   }
 
-  // If authenticated, redirect to home or specified route
+  // If authenticated, redirect to reports or specified route
   if (isAuthenticated) {
     return <Navigate to={redirectTo} replace />;
   }

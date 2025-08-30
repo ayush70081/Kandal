@@ -124,7 +124,7 @@ const Register = () => {
         setMessage('Account created successfully! Redirecting...');
         // Add a small delay to show the success message
         setTimeout(() => {
-          navigate('/home', { replace: true });
+          navigate('/reports', { replace: true });
         }, 1000);
       } else {
         setError(result.error);

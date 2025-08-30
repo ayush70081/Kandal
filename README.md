@@ -99,7 +99,6 @@ Kandal/
     ├── src/
     │   ├── components/
     │   │   ├── LandingPage.jsx      # Beautiful landing page
-    │   │   ├── Home.jsx             # User dashboard
     │   │   ├── Login.jsx            # Authentication forms
     │   │   ├── Register.jsx         # User registration
     │   │   ├── ReportSubmission.jsx # Incident reporting form
@@ -250,8 +249,8 @@ Kandal/
 1. **Start both servers** (backend on port 5000, frontend on port 5173)
 2. **Register a new account** at http://localhost:5173/register
 3. **Login with credentials** at http://localhost:5173/login
-4. **Access protected dashboard** at http://localhost:5173/home
-5. **Manage profile** and change password from the dashboard
+4. **Access the reports page** at http://localhost:5173/reports
+5. **Manage profile** and change password from the profile section
 
 ## ✅ Features Implemented
 

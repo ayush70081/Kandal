@@ -17,7 +17,7 @@ const Login = () => {
   const location = useLocation();
   
   // Get the redirect URL from location state or default to home
-  const from = location.state?.from?.pathname || '/home';
+  const from = location.state?.from?.pathname || '/reports';
 
   const handleChange = (e) => {
     const { name, value } = e.target;

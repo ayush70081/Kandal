@@ -6,7 +6,6 @@ import ProtectedRoute, { PublicRoute } from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import Login from './components/Login';
 import Register from './components/Register';
-import Home from './components/Home';
 import ReportSubmission from './components/ReportSubmission';
 import ReportListing from './components/ReportListing';
 import Profile from './components/Profile';
@@ -15,7 +14,6 @@ import LandingRoute from './components/LandingRoute';
 
 import TestDashboard from './components/TestDashboard';
 import './styles/auth.css';
-import './styles/home.css';
 import './styles/report.css';
 import './App.css';
 import 'react-toastify/dist/ReactToastify.css';
@@ -82,7 +80,6 @@ function App() {
                   </ProtectedRoute>
                 }
               >
-                <Route path="/home" element={<Home />} />
                 <Route path="/report" element={<ReportSubmission />} />
                 <Route path="/reports" element={<ReportListing />} />
                 <Route path="/leaderboard" element={<Leaderboard />} />

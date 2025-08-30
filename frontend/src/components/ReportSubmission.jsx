@@ -607,7 +607,7 @@ const ReportSubmission = () => {
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => navigate("/home")}
+                onClick={() => navigate("/reports")}
                 disabled={loading}
               >
                 Cancel

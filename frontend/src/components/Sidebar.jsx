@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  Home,
   FileText,
   ClipboardList,
   User,
@@ -59,12 +58,6 @@ const Sidebar = () => {
 
 
       <nav className="sidebar-nav">
-        <NavLink to="/home" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <span className="nav-icon">
-            <Home size={20} />
-          </span>
-          {!collapsed && <span className="nav-label">Dashboard</span>}
-        </NavLink>
         <NavLink to="/report" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <span className="nav-icon">
             <FileText size={20} />
