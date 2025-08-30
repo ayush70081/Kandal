@@ -286,6 +286,38 @@ reportSchema.methods.updateStatus = function(newStatus, validatorId = null, note
   return this.save();
 };
 
+// Admin review fields
+reportSchema.add({
+  adminNotes: {
+    type: String
+  },
+  reviewedBy: {
+    type: String
+  },
+  reviewedAt: {
+    type: Date
+  }
+});
+
+// Admin approve
+reportSchema.methods.approveByAdmin = function(adminIdentifier, notes = '') {
+  this.status = 'verified';
+  this.reviewedBy = adminIdentifier;
+  this.reviewedAt = new Date();
+  this.adminNotes = notes;
+  return this.save();
+};
+
+// Admin reject
+reportSchema.methods.rejectByAdmin = function(adminIdentifier, notes = '') {
+  this.status = 'false_positive';
+  this.reviewedBy = adminIdentifier;
+  this.reviewedAt = new Date();
+  this.adminNotes = notes;
+  this.isPublic = false;
+  return this.save();
+};
+
 reportSchema.methods.incrementViewCount = function() {
   this.viewCount += 1;
   return this.save();
