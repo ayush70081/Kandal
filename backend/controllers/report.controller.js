@@ -151,26 +151,29 @@ const analyzeImage = async (req, res) => {
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         const prompt = `
-Analyze the image provided.
+Analyze the image provided and respond in the following JSON format:
 
-First, determine if the image is of a mangrove forest or a coastal environment where mangroves grow.
+{
+  "isMangrove": true/false,
+  "analysis": "your detailed analysis here"
+}
 
-If it is, then check for any of the following threats:
+First, determine if the image is of a mangrove forest or a coastal environment where mangroves grow. Set "isMangrove" to true if it contains mangroves, false otherwise.
+
+If isMangrove is true, then check for any of the following threats in your analysis:
 - Cut down or felled trees
 - Fire or smoke indicating burning trees
 - Oil spillage in the water
 - Waste or garbage dumping
 - Any other visible signs of damage or destruction.
 
-If a threat is detected, describe the threat and estimate its approximate severity (e.g., low, medium, high). For example: "Threat detected: A few cut trees are visible. Approximate threat level: Low." or "Threat detected: A large area of the forest is on fire. Approximate threat level: High."
+If a threat is detected, describe the threat and estimate its approximate severity (e.g., low, medium, high). For example: "Threat detected: A few cut trees are visible. Approximate threat level: Low."
 
-If no threat is detected but it is a mangrove, identify the species and provide a short, 5-line summary including:
-- Species name
-- Key benefits
-- Common threats
-- Main locations where it is found.
+If no threat is detected but it is a mangrove, identify the species and provide a short summary including species name, key benefits, common threats, and main locations.
 
-If the image is not of a mangrove environment, respond with: 'The uploaded image does not appear to be a mangrove area. Please upload photos of potential threats to mangrove forests.'
+If isMangrove is false, set the analysis to: "The uploaded image does not appear to be a mangrove area. Please upload photos of potential threats to mangrove forests."
+
+Always respond with valid JSON format.
 `;
 
         const imagePart = {
@@ -186,7 +189,35 @@ If the image is not of a mangrove environment, respond with: 'The uploaded image
         const text = response.text();
 
         console.log('Analysis completed successfully');
-        res.json({ analysis: text });
+        
+        // Parse JSON response from Gemini
+        try {
+            // Clean the response text by removing markdown code blocks
+            let cleanText = text.trim();
+            
+            // Remove markdown code block markers if present
+            if (cleanText.startsWith('```json')) {
+                cleanText = cleanText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+            } else if (cleanText.startsWith('```')) {
+                cleanText = cleanText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+            }
+            
+            const analysisData = JSON.parse(cleanText);
+            res.json({ 
+                analysis: analysisData.analysis,
+                isMangrove: analysisData.isMangrove 
+            });
+        } catch (parseError) {
+            console.error('Failed to parse Gemini response as JSON:', parseError);
+            console.log('Raw response:', text);
+            
+            // Fallback: treat as plain text and check for mangrove keywords
+            const isMangrove = !text.toLowerCase().includes('does not appear to be a mangrove');
+            res.json({ 
+                analysis: text,
+                isMangrove: isMangrove 
+            });
+        }
     } catch (error) {
         console.error('Error analyzing image:', error);
         res.status(500).json({ error: 'Failed to analyze image.' });
@@ -396,7 +427,7 @@ const addComment = async (req, res) => {
     }
 
     const { id } = req.params;
-    const { text } = req.body;
+    const { content } = req.body;
 
     const report = await Report.findById(id);
     if (!report) {
@@ -405,7 +436,7 @@ const addComment = async (req, res) => {
       });
     }
 
-    await report.addComment(req.user.id, text);
+    await report.addComment(req.user.id, content);
 
     // Award points for commenting
     await req.user.awardPoints(2, 'Comment added');
@@ -442,61 +473,46 @@ const addComment = async (req, res) => {
   }
 };
 
-// Upvote/downvote report
-const toggleUpvote = async (req, res) => {
+// Upvote a report
+const upvoteReport = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user.id;
 
     const report = await Report.findById(id);
     if (!report) {
-      return res.status(404).json({
-        error: 'Report not found'
-      });
+      return res.status(404).json({ success: false, message: 'Report not found' });
     }
 
     // Check if user already upvoted
-    const hasUpvoted = report.upvotes.some(upvote => upvote.user.equals(req.user.id));
-
+    const hasUpvoted = report.upvotes.some(upvote => upvote.user.toString() === userId);
+    
     if (hasUpvoted) {
-      await report.removeUpvote(req.user.id);
-      res.json({
+      // Remove upvote (toggle functionality)
+      report.upvotes = report.upvotes.filter(upvote => upvote.user.toString() !== userId);
+      await report.save();
+      
+      return res.json({ 
+        success: true, 
         message: 'Upvote removed',
-        upvoted: false,
-        upvoteCount: report.upvotes.length
-      });
-    } else {
-      await report.addUpvote(req.user.id);
-
-      // Award points for upvoting
-      await req.user.awardPoints(1, 'Upvote given');
-
-      // Create notification for report owner (if not upvoting own report)
-      if (!report.reporter.equals(req.user.id)) {
-        await Notification.create({
-          recipient: report.reporter,
-          type: 'upvote_received',
-          title: 'Your Report Received an Upvote',
-          message: `${req.user.name} upvoted your report "${report.title}".`,
-          relatedReport: report._id,
-          relatedUser: req.user.id,
-          priority: 'low',
-          channel: ['in_app']
-        });
-      }
-
-      res.json({
-        message: 'Report upvoted',
-        upvoted: true,
-        upvoteCount: report.upvotes.length
+        upvoteCount: report.upvotes.length,
+        hasUpvoted: false
       });
     }
 
-  } catch (error) {
-    console.error('Error toggling upvote:', error);
-    res.status(500).json({
-      error: 'Failed to toggle upvote',
-      message: error.message
+    // Add upvote
+    report.upvotes.push({ user: userId });
+    await report.save();
+
+    res.json({ 
+      success: true, 
+      message: 'Report upvoted successfully',
+      upvoteCount: report.upvotes.length,
+      hasUpvoted: true
     });
+  } catch (error) {
+    console.error('Error upvoting report:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -567,14 +583,71 @@ const getNearbyReports = async (req, res) => {
   }
 };
 
+const getAllReports = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+    const userId = req.user.id;
+    const Comment = require('../models/comment.model');
+    
+    const sortObj = {};
+    sortObj[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    const reports = await Report.find({ status: { $ne: 'rejected' } })
+      .sort(sortObj)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate('reporter', 'name')
+      .select('title description incidentType severity location createdAt photos upvotes status')
+      .lean();
+    
+    // Get comment counts for all reports
+    const reportIds = reports.map(report => report._id);
+    const commentCounts = await Comment.aggregate([
+      { $match: { reportId: { $in: reportIds } } },
+      { $group: { _id: '$reportId', count: { $sum: 1 } } }
+    ]);
+    
+    // Create a map for quick lookup
+    const commentCountMap = {};
+    commentCounts.forEach(item => {
+      commentCountMap[item._id.toString()] = item.count;
+    });
+    
+    const reportsWithCounts = reports.map(report => ({
+      ...report,
+      upvoteCount: report.upvotes ? report.upvotes.length : 0,
+      hasUpvoted: report.upvotes ? report.upvotes.some(upvote => upvote.user.toString() === userId) : false,
+      commentCount: commentCountMap[report._id.toString()] || 0
+    }));
+    
+    const total = await Report.countDocuments({ status: { $ne: 'rejected' } });
+    
+    res.json({
+      success: true,
+      reports: reportsWithCounts,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to fetch reports', message: error.message });
+  }
+};
+
 module.exports = {
   submitReport,
   getReports,
   getReportById,
   validateReport,
   addComment,
-  toggleUpvote,
+  upvoteReport,
   getReportStats,
   getNearbyReports,
+  getAllReports,
   analyzeImage
 };

@@ -8,9 +8,10 @@ const {
   getReportById,
   validateReport,
   addComment,
-  toggleUpvote,
+  upvoteReport,
   getReportStats,
   getNearbyReports,
+  getAllReports,
   analyzeImage
 } = require('../controllers/report.controller');
 
@@ -94,7 +95,7 @@ const addCommentValidation = [
     .isMongoId()
     .withMessage('Invalid report ID'),
 
-  body('text')
+  body('content')
     .trim()
     .isLength({ min: 1, max: 1000 })
     .withMessage('Comment must be between 1 and 1000 characters')
@@ -195,6 +196,32 @@ router.get('/',
 // Get reports statistics
 router.get('/stats', getReportStats);
 
+// Get all reports for community page
+router.get('/all',
+  [
+    query('page')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Page must be a positive integer'),
+
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
+
+    query('sortBy')
+      .optional()
+      .isIn(['createdAt', 'upvoteCount'])
+      .withMessage('Invalid sort field'),
+
+    query('sortOrder')
+      .optional()
+      .isIn(['asc', 'desc'])
+      .withMessage('Sort order must be asc or desc')
+  ],
+  getAllReports
+);
+
 // Get nearby reports
 router.get('/nearby',
   [
@@ -220,19 +247,10 @@ router.get('/:id', mongoIdValidation, getReportById);
 // Validate/update report status (admin only)
 router.put('/:id/validate', validateReportValidation, validateReport);
 
-// Add comment to report
-router.post('/:id/comments', addCommentValidation, addComment);
+// Comment routes are handled by comment.routes.js to avoid conflicts
+// router.post('/:id/comments', addCommentValidation, addComment);
 
 // Toggle upvote on report
-router.post('/:id/upvote', mongoIdValidation, toggleUpvote);
-
-// Submit a new report
-router.post('/submit',
-  upload, // Uses original disk storage
-  processImages,
-  // submitReportValidation,
-  handleUploadError,
-  submitReport
-);
+router.post('/:id/upvote', mongoIdValidation, upvoteReport);
 
 module.exports = router;
