@@ -50,36 +50,81 @@ const ReportSubmission = () => {
 
   // Get current location
   const getCurrentLocation = () => {
+    if (locationLoading) return; // Prevent multiple simultaneous calls
+    
     setLocationLoading(true);
     
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setFormData(prev => ({
-            ...prev,
-            location: {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude
-            }
-          }));
-          setLocationLoading(false);
-          toast.success('Location coordinates captured successfully!');
-        },
-        (error) => {
-          console.error('Geolocation error:', error);
-          setLocationLoading(false);
-          toast.error('Unable to get location. Please enter manually.');
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000
-        }
-      );
-    } else {
+    // Basic capability and context checks
+    if (!('geolocation' in navigator)) {
       setLocationLoading(false);
       toast.error('Geolocation is not supported by this browser.');
+      return;
     }
+
+    // Geolocation requires HTTPS except on localhost
+    const hostname = window.location.hostname || '';
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+    if (!window.isSecureContext && !isLocalhost) {
+      setLocationLoading(false);
+      toast.error('Geolocation requires HTTPS or localhost. Please use a secure context.');
+      return;
+    }
+
+    let hasCompleted = false; // Flag to prevent double execution
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        if (hasCompleted) return;
+        hasCompleted = true;
+        
+        setFormData(prev => ({
+          ...prev,
+          location: {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          }
+        }));
+        setLocationLoading(false);
+        toast.success('Location coordinates captured successfully!');
+      },
+      (error) => {
+        if (hasCompleted) return;
+        hasCompleted = true;
+        
+        // Log useful error details
+        console.error('Geolocation error:', {
+          code: error?.code,
+          message: error?.message
+        });
+        setLocationLoading(false);
+        
+        let errorMessage = 'Unable to get location. Please enter manually.';
+        
+        // Use numeric codes per spec: 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT
+        switch (error?.code) {
+          case 1:
+            errorMessage = 'Location access denied. Please enable location permissions and try again.';
+            break;
+          case 2:
+            errorMessage = 'Location information unavailable. Please enter coordinates manually.';
+            break;
+          case 3:
+            errorMessage = 'Location request timed out. Please try again or enter manually.';
+            break;
+          default:
+            errorMessage = error?.message || 'Unable to get location. Please enter coordinates manually.';
+            break;
+        }
+        
+        toast.error(errorMessage);
+      },
+      {
+        // Adjust accuracy and timeouts as reasonable defaults
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    );
   };
 
   // Handle form input changes
@@ -94,17 +139,7 @@ const ReportSubmission = () => {
     if (error) setError('');
   };
 
-  // Handle location coordinate changes
-  const handleLocationChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      location: {
-        ...prev.location,
-        [name]: parseFloat(value) || null
-      }
-    }));
-  };
+  // Manual coordinate editing is disabled by design to ensure trusted values
 
   // File upload handling
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -169,7 +204,7 @@ const ReportSubmission = () => {
     }
     
     if (!formData.location.latitude || !formData.location.longitude) {
-      setError('Location coordinates are required. Please capture your location or enter manually.');
+      setError('Location coordinates are required. Please capture your location.');
       return false;
     }
     
@@ -406,12 +441,16 @@ const ReportSubmission = () => {
                   <input
                     id="latitude"
                     name="latitude"
-                    type="number"
-                    step="any"
+                    type="text"
+                    inputMode="decimal"
+                    readOnly
                     className="form-input"
-                    placeholder="12.5678"
-                    value={formData.location.latitude || ''}
-                    onChange={handleLocationChange}
+                    placeholder="Auto-Detected"
+                    value={
+                      typeof formData.location.latitude === 'number'
+                        ? formData.location.latitude.toFixed(6)
+                        : ''
+                    }
                   />
                 </div>
                 <div className="form-field">
@@ -421,12 +460,16 @@ const ReportSubmission = () => {
                   <input
                     id="longitude"
                     name="longitude"
-                    type="number"
-                    step="any"
+                    type="text"
+                    inputMode="decimal"
+                    readOnly
                     className="form-input"
-                    placeholder="101.2345"
-                    value={formData.location.longitude || ''}
-                    onChange={handleLocationChange}
+                    placeholder="Auto-Detected"
+                    value={
+                      typeof formData.location.longitude === 'number'
+                        ? formData.location.longitude.toFixed(6)
+                        : ''
+                    }
                   />
                 </div>
               </div>
