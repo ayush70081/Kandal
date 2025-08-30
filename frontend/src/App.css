@@ -1,42 +1,116 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
+.navbar {
+  background-color: #005f73;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+}
+
+.nav-brand {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  text-decoration: none;
+}
+
+.nav-link {
+  color: #edf2f4;
+  text-decoration: none;
+  margin-left: 1.5rem;
+  font-size: 1rem;
+  transition: color 0.2s;
+}
+
+.nav-link:hover {
+  color: #90e0ef;
+}
+
+.page-content {
+  display: flex;
+  justify-content: center;
   padding: 2rem;
+}
+
+.container {
+  background-color: white;
+  padding: 30px 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   text-align: center;
+  width: 90%;
+  max-width: 500px;
+  transition: all 0.3s ease;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+h2 {
+  margin-top: 0;
+  color: #005f73;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+#image-preview {
+  margin-top: 20px;
+  width: 100%;
+  max-height: 250px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #ddd;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+button {
+  border: none;
+  padding: 12px 25px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 20px;
+  width: 100%;
 }
 
-.card {
-  padding: 2em;
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
-.read-the-docs {
-  color: #888;
+.btn-primary { 
+  background-color: #0077b6; 
+  color: white; 
+}
+
+/* New style for the retry button */
+.btn-retry {
+  background-color: #e76f51; /* A distinct "warning" color */
+  color: white;
+}
+
+#status {
+  margin-top: 20px;
+  font-size: 1em;
+  font-weight: bold;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.info { color: #005f73; background-color: #e0f7fa; }
+.success { color: #1e6044; background-color: #d4edda; }
+.error { color: #d00000; background-color: #f8d7da; }
+
+/* Add this new style anywhere in your App.css file */
+.image-display-box {
+    margin-top: 25px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.image-display-box h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+.image-display-box img {
+    max-width: 100%;
+    border-radius: 4px;
 }
