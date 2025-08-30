@@ -11,6 +11,7 @@ import ReportSubmission from './components/ReportSubmission';
 import ReportListing from './components/ReportListing';
 import Profile from './components/Profile';
 import Leaderboard from './components/Leaderboard';
+import LandingRoute from './components/LandingRoute';
 
 import TestDashboard from './components/TestDashboard';
 import './styles/auth.css';
@@ -92,11 +93,11 @@ function App() {
               {/* Test route remains public */}
               <Route path="/test" element={<TestDashboard />} />
 
-              {/* Default redirect */}
-              <Route path="/" element={<Navigate to="/home" replace />} />
+              {/* Landing page route */}
+              <Route path="/" element={<LandingRoute />} />
 
               {/* 404 fallback */}
-              <Route path="*" element={<Navigate to="/home" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             
             {/* Toast Notifications */}

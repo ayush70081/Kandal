@@ -27,6 +27,11 @@
 .auth-header {
   text-align: center;
   margin-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  padding-top: 50px;
 }
 
 .auth-header h1 {
@@ -42,17 +47,67 @@
   font-size: 1rem;
 }
 
+/* Back to Home Link */
+.back-to-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #4a7c59;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  margin-bottom: 0;
+}
+
+.back-to-home:hover {
+  background-color: rgba(74, 124, 89, 0.1);
+  color: #2e7d32;
+  transform: translateX(-2px);
+}
+
+.back-to-home svg {
+  transition: transform 0.3s ease;
+}
+
+.back-to-home:hover svg {
+  transform: translateX(-2px);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 480px) {
+  .auth-header {
+    padding-top: 20px;
+  }
+  
+  .back-to-home {
+    position: static;
+    align-self: flex-start;
+    margin-bottom: 20px;
+  }
+
+  .auth-card {
+    padding: 30px 20px;
+  }
+}
+
 /* Form Styles */
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  margin-bottom: 0;
 }
 
 .form-group label {
@@ -203,7 +258,8 @@
   border: 1px solid #e9ecef;
   border-radius: 6px;
   padding: 12px;
-  margin-top: 8px;
+  margin-top: 4px;
+  margin-bottom: 0;
 }
 
 .password-requirements h4 {
@@ -293,7 +349,8 @@
 .field-error {
   color: #dc3545;
   font-size: 0.875rem;
-  margin-top: 4px;
+  margin-top: 2px;
+  margin-bottom: 0;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -371,7 +428,7 @@
 /* Auth Links */
 .auth-links {
   text-align: center;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .auth-links p {

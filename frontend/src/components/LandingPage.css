@@ -1445,17 +1445,34 @@ body {
 
 .social-links {
   display: flex;
-  gap: 0.5rem;
+  gap: 1rem;
+  align-items: center;
 }
 
-.social-links a {
-  display: inline-block;
-  font-size: 1.25rem;
-  transition: transform 0.3s ease;
+.social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #9ca3af;
+  transition: all 0.3s ease;
+  text-decoration: none;
 }
 
-.social-links a:hover {
-  transform: scale(1.2);
+.social-link:hover {
+  background-color: #4a7c59;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(74, 124, 89, 0.3);
+}
+
+.social-link svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
 }
 
 .footer-links {

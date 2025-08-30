@@ -140,6 +140,13 @@ const Register = () => {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
+          <Link to="/" className="back-to-home">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5"></path>
+              <path d="M12 19l-7-7 7-7"></path>
+            </svg>
+            Back to Home
+          </Link>
           <h1>Join Mangrove Guardians</h1>
           <p>Help protect mangrove forests by reporting incidents and monitoring conservation efforts</p>
         </div>
