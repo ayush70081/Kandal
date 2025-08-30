@@ -51,7 +51,7 @@ const Sidebar = () => {
           >
             <Leaf size={collapsed ? 24 : 20} />
           </button>
-          {!collapsed && <span className="brand-name">Mangrove</span>}
+          {!collapsed && <span className="brand-name">Kandal</span>}
         </div>
       </div>
 
@@ -82,12 +82,10 @@ const Sidebar = () => {
           </span>
           {!collapsed && <span className="nav-label">Profile</span>}
         </NavLink>
-
-
       </nav>
 
-      <div className="sidebar-footer">
-        <button className="logout" onClick={handleLogoutClick}>
+      <div className="sidebar-bottom">
+        <button className="nav-item logout" onClick={handleLogoutClick}>
           <span className="nav-icon">
             <LogOut size={20} />
           </span>
