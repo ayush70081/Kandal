@@ -2,11 +2,13 @@ require('dotenv').config(); // Load environment variables from .env file
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
+const multer = require('multer');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 const port = 3001;
 
-const PLANET_API_KEY = process.env.PLANET_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 // --- CORRECTED & VERIFIED DATABASE of known mangrove forests in India ---
 const mangroveForests = [
@@ -36,6 +38,12 @@ const MAX_DISTANCE_KM = 30; // Increased radius to better cover large and irregu
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Multer setup for file uploads
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Google Generative AI setup
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 /**
  * Calculates distance using the Haversine formula.
@@ -86,6 +94,55 @@ app.post('/api/verify-location', (req, res) => {
         res.json({ isValid: true, message: `Location confirmed near ${nearestForest}!` });
     } else {
         res.json({ isValid: false, message: 'Location is not within the known radius of a major mangrove forest.' });
+    }
+});
+
+// --- New Endpoint for Image Analysis ---
+app.post('/api/analyze-image', upload.single('image'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No image file provided.' });
+    }
+
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const prompt = `
+Analyze the image provided.
+
+First, determine if the image is of a mangrove forest or a coastal environment where mangroves grow.
+
+If it is, then check for any of the following threats:
+- Cut down or felled trees
+- Fire or smoke indicating burning trees
+- Oil spillage in the water
+- Waste or garbage dumping
+- Any other visible signs of damage or destruction.
+
+If a threat is detected, describe the threat and estimate its approximate severity (e.g., low, medium, high). For example: "Threat detected: A few cut trees are visible. Approximate threat level: Low." or "Threat detected: A large area of the forest is on fire. Approximate threat level: High."
+
+If no threat is detected but it is a mangrove, identify the species and provide a short, 5-line summary including:
+- Species name
+- Key benefits
+- Common threats
+- Main locations where it is found.
+
+If the image is not of a mangrove environment, respond with: 'The uploaded image does not appear to be a mangrove area. Please upload photos of potential threats to mangrove forests.'
+`;
+
+        const imagePart = {
+            inlineData: {
+                data: req.file.buffer.toString("base64"),
+                mimeType: req.file.mimetype,
+            },
+        };
+
+        const result = await model.generateContent([prompt, imagePart]);
+        const response = await result.response;
+        const text = response.text();
+
+        res.json({ analysis: text });
+    } catch (error) {
+        console.error('Error analyzing image:', error);
+        res.status(500).json({ error: 'Failed to analyze image.' });
     }
 });
 

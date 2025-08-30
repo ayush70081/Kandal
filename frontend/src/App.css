@@ -114,3 +114,23 @@ button:hover {
     max-width: 100%;
     border-radius: 4px;
 }
+
+.analysis-line {
+  text-align: left;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.analysis-line strong {
+  color: #005f73;
+  margin-right: 8px;
+  font-weight: 600;
+}
+
+.error-message {
+    color: #d00000;
+    font-weight: bold;
+    background-color: #f8d7da;
+    padding: 10px;
+    border-radius: 5px;
+}
