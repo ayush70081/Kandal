@@ -2,7 +2,7 @@
 
 .report-submission {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f0f9f0 0%, #e8f5e8 50%, #e0f2e0 100%);
+  background: #fefbf3;
   padding: 20px;
 }
 
@@ -15,10 +15,11 @@
 }
 
 .report-header {
-  background: linear-gradient(135deg, #2e7d32, #388e3c);
-  color: white;
+  background: #fefbf3;
+  color: #2e7d32;
   padding: 30px;
   text-align: center;
+  border-bottom: 2px solid #e5e7eb;
 }
 
 .report-header h1 {

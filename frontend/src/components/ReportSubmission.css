@@ -16,9 +16,10 @@
 }
 
 /* Header Section */
-.page-header {
-  background-color: #1a365d;
-  color: white;
+.report-submission-page .page-header {
+  background: none; /* ensure no gradient/image from other global styles */
+  background-color: #fefbf3; /* match sidebar cream */
+  color: #111827; /* dark text for readability */
   padding: 2rem 1.5rem;
   text-align: center;
 }
@@ -86,7 +87,7 @@
 .section-title {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #2d3748;
+  color: white;
   margin-bottom: 1rem;
   padding: 0;
   border: none;
@@ -272,9 +273,9 @@
 }
 
 .location-button {
-  background-color: #4299e1;
-  color: white;
-  border: none;
+  background-color: #111827;
+  color: #ffffff;
+  border: 1px solid #1f2937;
   padding: 0.6rem 1.5rem;
   border-radius: 6px;
   font-weight: 500;
@@ -285,8 +286,19 @@
 }
 
 .location-button:hover:not(:disabled) {
-  background-color: #3182ce;
+  background-color: #0f172a;
+  border-color: #111827;
   transform: translateY(-1px);
+}
+
+.location-button:active:not(:disabled) {
+  background-color: #0b1220;
+  transform: translateY(0);
+}
+
+.location-button:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
 }
 
 .location-button:disabled {
@@ -445,42 +457,43 @@
   font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 1px solid transparent;
+  border: 1px solid #1f2937 !important;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 120px;
-  /* Override global button styles */
-  background-color: transparent;
-  color: inherit;
+  background-color: #111827 !important;
+  color: #ffffff !important;
 }
 
+/* Keep variant classes but unify to black to override any legacy colors */
+.report-submission-page .btn-primary,
+.report-submission-page button.btn-primary,
 .report-submission-page .btn-secondary,
 .report-submission-page button.btn-secondary {
-  background-color: #718096 !important;
-  color: white !important;
-  border-color: #718096 !important;
+  background-color: #111827 !important;
+  color: #ffffff !important;
+  border-color: #1f2937 !important;
 }
 
-.report-submission-page .btn-secondary:hover:not(:disabled),
-.report-submission-page button.btn-secondary:hover:not(:disabled) {
-  background-color: #4a5568 !important;
-  border-color: #4a5568 !important;
+.report-submission-page .btn:hover:not(:disabled),
+.report-submission-page button.btn:hover:not(:disabled) {
+  background-color: #0f172a !important;
+  border-color: #111827 !important;
   transform: translateY(-1px);
 }
 
-.report-submission-page .btn-primary,
-.report-submission-page button.btn-primary {
-  background-color: #1a365d !important;
-  color: white !important;
-  border-color: #1a365d !important;
+.report-submission-page .btn:active:not(:disabled),
+.report-submission-page button.btn:active:not(:disabled) {
+  background-color: #0b1220 !important;
+  transform: translateY(0);
 }
 
-.report-submission-page .btn-primary:hover:not(:disabled),
-.report-submission-page button.btn-primary:hover:not(:disabled) {
-  background-color: #2c5282 !important;
-  transform: translateY(-1px);
+.report-submission-page .btn:focus-visible,
+.report-submission-page button.btn:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
 }
 
 .report-submission-page .btn:disabled,
@@ -493,11 +506,11 @@
 /* spinner handled globally in index.css for consistency */
 
 .analysis-result {
-    background-color: #f7fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    padding: 1rem;
-    margin-top: 1rem;
+  background-color: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-top: 1rem;
 }
 
 .analysis-result p {

@@ -22,9 +22,7 @@ const CommunityPage = () => {
     try {
       // Skip API call if no valid API key is available
       // Using a simple location-based name instead
-      const latRounded = Math.round(lat * 100) / 100;
-      const lngRounded = Math.round(lng * 100) / 100;
-      return `Mangrove Community (${latRounded}, ${lngRounded})`;
+      return 'Mangrove Community';
     } catch (error) {
       console.error('Error generating location name:', error);
       return 'Mangrove Community';
@@ -383,11 +381,6 @@ const CommunityPage = () => {
                   <span className="comment-text">
                     {commentCounts[report._id] || comments[report._id]?.length || 0} Comments
                   </span>
-                </button>
-                
-                <button className="share-btn">
-                  <span className="share-icon">📤</span>
-                  <span className="share-text">Share</span>
                 </button>
               </div>
 

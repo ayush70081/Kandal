@@ -41,7 +41,6 @@ const reportEvaluationSchema = new mongoose.Schema({
 });
 
 // Index for efficient queries
-reportEvaluationSchema.index({ reportId: 1 });
 reportEvaluationSchema.index({ evaluatedBy: 1 });
 reportEvaluationSchema.index({ evaluatedAt: -1 });
 

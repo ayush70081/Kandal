@@ -9,7 +9,7 @@
   position: sticky;
   top: 0;
   height: 100vh;
-  background: var(--surface-elevated, #ffffff);
+  background: #fefbf3;
   border-right: 1px solid var(--border, #e5e7eb);
   box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06));
   display: flex;
@@ -300,3 +300,73 @@
 
 
 
+/* Dashboard Button Theme (Black) */
+.app-shell .btn,
+.app-shell button.btn,
+.app-shell a.btn {
+  background: #111827; /* near-black */
+  color: #ffffff;
+  border: 1px solid #0b1220;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
+}
+
+.app-shell .btn:hover:not(:disabled),
+.app-shell button.btn:hover:not(:disabled),
+.app-shell a.btn:hover:not(:disabled) {
+  background: #0b0f19; /* darker */
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06));
+}
+
+.app-shell .btn:active:not(:disabled),
+.app-shell button.btn:active:not(:disabled),
+.app-shell a.btn:active:not(:disabled) {
+  transform: translateY(0);
+  background: #111827;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
+}
+
+/* Variants map to black theme */
+.app-shell .btn.primary,
+.app-shell .btn-primary {
+  background: #111827;
+  color: #fff;
+  border-color: #0b1220;
+}
+
+.app-shell .btn.secondary,
+.app-shell .btn-secondary {
+  background: #1f2937; /* slightly lighter black */
+  color: #fff;
+  border-color: #111827;
+}
+
+.app-shell .btn.outline {
+  background: transparent;
+  color: #111827;
+  border-color: #111827;
+}
+
+.app-shell .btn.outline:hover:not(:disabled) {
+  background: #111827;
+  color: #fff;
+}
+
+.app-shell .btn.ghost {
+  background: transparent;
+  color: #111827;
+  border-color: transparent;
+}
+
+.app-shell .btn.ghost:hover:not(:disabled) {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.app-shell .btn.small { padding: 6px 12px; }
+
+.app-shell .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}

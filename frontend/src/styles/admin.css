@@ -139,7 +139,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #1f2937;
+  background: #fefbf3;
 }
 
 .admin-login-card {
@@ -157,6 +157,48 @@
   color: #1f2937;
   font-size: 1.875rem;
   font-weight: 700;
+}
+
+/* Login page: black Sign In button theme (scoped) */
+.admin-login-container .admin-btn,
+.admin-login-container button.admin-btn,
+.admin-login-container a.admin-btn {
+  background: #111827;
+  color: #ffffff;
+  border: 1px solid #0b1220;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  justify-content: center; /* center button text horizontally */
+  text-align: center;      /* ensure text center */
+}
+
+.admin-login-container .admin-btn:hover:not(:disabled) {
+  background: #0b0f19;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.admin-login-container .admin-btn:active:not(:disabled) {
+  transform: translateY(0);
+  background: #111827;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.admin-login-container .admin-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.3);
+}
+
+.admin-login-container .admin-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Ensure primary variant is black on login page */
+.admin-login-container .admin-btn-primary {
+  background: #111827 !important;
+  color: #ffffff !important;
+  border-color: #0b1220 !important;
 }
 
 /* Cards and Tables */
@@ -608,4 +650,74 @@
   .admin-page-title {
     font-size: 1.5rem;
   }
+}
+
+/* Admin Dashboard Button Theme (Black) */
+.admin-layout .admin-btn,
+.admin-layout button.admin-btn,
+.admin-layout a.admin-btn {
+  background: #111827;
+  color: #ffffff;
+  border: 1px solid #0b1220;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.admin-layout .admin-btn:hover:not(:disabled) {
+  background: #0b0f19;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+}
+
+.admin-layout .admin-btn:active:not(:disabled) {
+  transform: translateY(0);
+  background: #111827;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.admin-layout .admin-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(17,24,39,0.3);
+}
+
+.admin-layout .admin-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Map all variants to black theme for uniformity */
+.admin-layout .admin-btn-primary,
+.admin-layout .admin-btn-secondary,
+.admin-layout .admin-btn-success,
+.admin-layout .admin-btn-danger {
+  background: #111827 !important;
+  color: #ffffff !important;
+  border-color: #0b1220 !important;
+}
+
+.admin-layout .admin-btn-primary:hover,
+.admin-layout .admin-btn-secondary:hover,
+.admin-layout .admin-btn-success:hover,
+.admin-layout .admin-btn-danger:hover {
+  background: #0b0f19 !important;
+}
+
+/* Also normalize any generic .btn used inside admin pages */
+.admin-layout .btn,
+.admin-layout button.btn,
+.admin-layout a.btn {
+  background: #111827;
+  color: #ffffff;
+  border: 1px solid #0b1220;
+}
+
+.admin-layout .btn-primary,
+.admin-layout .btn-secondary {
+  background: #111827;
+  color: #ffffff;
+  border-color: #0b1220;
+}
+
+.admin-layout .btn:hover:not(:disabled) {
+  background: #0b0f19;
 }
