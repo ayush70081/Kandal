@@ -27,6 +27,7 @@ import UsersManagement from './components/admin/UsersManagement';
 import AdminLeaderboard from './components/admin/Leaderboard';
 import AnalyticsDashboard from './components/admin/AnalyticsDashboard';
 import AdminMap from './components/admin/AdminMap';
+import PostDataEvaluation from './components/admin/PostDataEvaluation';
 
 function App() {
   return (
@@ -72,6 +73,7 @@ function App() {
                 <Route path="analytics" element={<AnalyticsDashboard />} />
                 <Route path="map" element={<AdminMap />} />
                 <Route path="community" element={<CommunityPage />} />
+                <Route path="evaluation" element={<PostDataEvaluation />} />
               </Route>
 
               {/* Protected routes nested under layout */}

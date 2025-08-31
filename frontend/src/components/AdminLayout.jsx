@@ -13,7 +13,8 @@ const AdminLayout = () => {
     { path: '/admin/leaderboard', label: 'Leaderboard' },
     { path: '/admin/analytics', label: 'Analytics' },
     { path: '/admin/map', label: 'Map' },
-    { path: '/admin/community', label: 'Community' }
+    { path: '/admin/community', label: 'Community' },
+    { path: '/admin/evaluation', label: 'Post Evaluation' }
   ];
 
   return (
