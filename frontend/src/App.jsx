@@ -10,6 +10,7 @@ import ReportSubmission from './components/ReportSubmission';
 import ReportListing from './components/ReportListing';
 import Profile from './components/Profile';
 import Leaderboard from './components/Leaderboard';
+import CommunityPage from './components/CommunityPage';
 import LandingRoute from './components/LandingRoute';
 
 import TestDashboard from './components/TestDashboard';
@@ -26,6 +27,7 @@ import UsersManagement from './components/admin/UsersManagement';
 import AdminLeaderboard from './components/admin/Leaderboard';
 import AnalyticsDashboard from './components/admin/AnalyticsDashboard';
 import AdminMap from './components/admin/AdminMap';
+import PostDataEvaluation from './components/admin/PostDataEvaluation';
 
 function App() {
   return (
@@ -70,6 +72,8 @@ function App() {
                 <Route path="leaderboard" element={<AdminLeaderboard />} />
                 <Route path="analytics" element={<AnalyticsDashboard />} />
                 <Route path="map" element={<AdminMap />} />
+                <Route path="community" element={<CommunityPage />} />
+                <Route path="evaluation" element={<PostDataEvaluation />} />
               </Route>
 
               {/* Protected routes nested under layout */}
@@ -82,6 +86,7 @@ function App() {
               >
                 <Route path="/report" element={<ReportSubmission />} />
                 <Route path="/reports" element={<ReportListing />} />
+                <Route path="/community" element={<CommunityPage />} />
                 <Route path="/leaderboard" element={<Leaderboard />} />
                 <Route path="/profile" element={<Profile />} />
 

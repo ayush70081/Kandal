@@ -1,6 +1,5 @@
 const multer = require('multer');
 const sharp = require('sharp');
-const exifr = require('exifr');
 const path = require('path');
 const fs = require('fs').promises;
 const crypto = require('crypto');
@@ -78,25 +77,8 @@ const processImages = async (req, res, next) => {
       const thumbnailPath = path.join(thumbnailsPath, thumbnailFileName);
 
       try {
-        let metadata = {};
-        try {
-          const exifData = await exifr.parse(tempPath);
-          if (exifData) {
-            metadata = {
-              takenAt: exifData.DateTimeOriginal || exifData.DateTime || null,
-              gpsCoordinates: exifData.latitude && exifData.longitude ? {
-                latitude: exifData.latitude,
-                longitude: exifData.longitude
-              } : null,
-              deviceInfo: {
-                make: exifData.Make || null,
-                model: exifData.Model || null
-              }
-            };
-          }
-        } catch (exifError) {
-          console.log('Could not extract EXIF data:', exifError.message);
-        }
+        // EXIF data extraction removed - using Gemini API for image analysis instead
+        const metadata = {};
 
         await sharp(tempPath)
           .resize(1920, 1080, { 
@@ -122,7 +104,7 @@ const processImages = async (req, res, next) => {
           thumbnailPath: `uploads/thumbnails/${thumbnailFileName}`,
           size: stats.size,
           mimeType: 'image/webp',
-          metadata: metadata
+          metadata: {}
         };
 
         processedFiles.push(processedFile);

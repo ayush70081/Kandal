@@ -10,7 +10,8 @@ import {
   LogOut,
   Leaf,
   AlertTriangle,
-  X
+  X,
+  Users
 } from 'lucide-react';
 import '../styles/layout.css';
 
@@ -69,6 +70,12 @@ const Sidebar = () => {
             <ClipboardList size={20} />
           </span>
           {!collapsed && <span className="nav-label">Reports</span>}
+        </NavLink>
+        <NavLink to="/community" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <span className="nav-icon">
+            <Users size={20} />
+          </span>
+          {!collapsed && <span className="nav-label">Community</span>}
         </NavLink>
         <NavLink to="/leaderboard" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <span className="nav-icon">

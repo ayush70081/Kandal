@@ -506,8 +506,8 @@
     font-size: 0.875rem;
 }
 
-.analysis-result p:last-child {
-    margin-bottom: 0;
+.analysis-text:last-child {
+  margin-bottom: 0;
 }
 
 .loading-state {

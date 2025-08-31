@@ -25,6 +25,7 @@ const ReportSubmission = () => {
   const [previewPhotos, setPreviewPhotos] = useState([]);
   const [analysisResult, setAnalysisResult] = useState("");
   const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [isMangroveValid, setIsMangroveValid] = useState(true);
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -80,9 +81,15 @@ const ReportSubmission = () => {
     try {
       const response = await axios.post("/reports/analyze-image", formData);
       setAnalysisResult(response.data.analysis);
+      setIsMangroveValid(response.data.isMangrove);
+      
+      if (!response.data.isMangrove) {
+        toast.error("This image does not contain mangrove content. Please upload photos of mangrove areas only.");
+      }
     } catch (error) {
       console.error("Image analysis error:", error);
       toast.error("Could not analyze the image.");
+      setIsMangroveValid(false);
     } finally {
       setAnalysisLoading(false);
     }
@@ -262,6 +269,12 @@ const ReportSubmission = () => {
 
     if (photos.length === 0) {
       setError("At least one photo is required as evidence");
+      return false;
+    }
+
+    // Check if Gemini API detected non-mangrove content
+    if (!isMangroveValid) {
+      setError("The uploaded image does not contain mangrove content. Please upload photos of mangrove areas only.");
       return false;
     }
 
@@ -582,17 +595,44 @@ const ReportSubmission = () => {
               </div>
             </div>
 
-            {(analysisLoading || analysisResult) && (
+            {(analysisLoading || (analysisResult && isMangroveValid)) && (
               <div className="form-section">
                 <h2 className="section-title">Image Analysis</h2>
                 {analysisLoading && (
                   <div className="loading-state">Loading analysis...</div>
                 )}
-                {analysisResult && (
-                  <div className="analysis-result">
-                    {analysisResult.split("\n").map((line, index) => (
-                      <p key={index}>{line}</p>
-                    ))}
+                {analysisResult && isMangroveValid && (
+                  <div className="analysis-result analysis-success">
+                    <div className="analysis-content">
+                      {analysisResult.split("\n").filter(line => line.trim()).map((line, index) => {
+                        // Check if line contains threat detection
+                        if (line.toLowerCase().includes("threat detected")) {
+                          return (
+                            <div key={index} className="threat-detection">
+                              <strong>🚨 {line}</strong>
+                            </div>
+                          );
+                        }
+                        // Check if line contains threat level
+                        if (line.toLowerCase().includes("threat level")) {
+                          return (
+                            <div key={index} className="threat-level">
+                              <em>{line}</em>
+                            </div>
+                          );
+                        }
+                        // Check if line contains species information
+                        if (line.toLowerCase().includes("species") || line.toLowerCase().includes("benefits") || line.toLowerCase().includes("locations")) {
+                          return (
+                            <div key={index} className="species-info">
+                              <span className="info-point">• {line}</span>
+                            </div>
+                          );
+                        }
+                        // Regular analysis text
+                        return <p key={index} className="analysis-text">{line}</p>;
+                      })}
+                    </div>
                   </div>
                 )}
               </div>

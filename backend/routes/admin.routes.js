@@ -41,6 +41,12 @@ router.get('/health', (req, res) => {
 // Simple admin leaderboard alias
 router.get('/leaderboard', authenticateAdminToken, AdminUserController.leaderboard);
 
+// Post evaluation routes
+const reportController = require('../controllers/report.controller');
+router.get('/reports/evaluation', authenticateAdminToken, reportController.getReportsForEvaluation);
+router.post('/reports/estimate-loss', authenticateAdminToken, reportController.generateLossEstimation);
+router.post('/reports/save-evaluation', authenticateAdminToken, reportController.saveReportEvaluation);
+
 module.exports = router;
 
 // Mount nested routers after export for clarity in server

@@ -2,6 +2,7 @@ const Report = require('../models/report.model');
 const User = require('../models/user.model');
 const Badge = require('../models/badge.model');
 const Notification = require('../models/notification.model');
+const ReportEvaluation = require('../models/reportEvaluation.model');
 const { validationResult } = require('express-validator');
 const { deleteUploadedFiles } = require('../middleware/upload.middleware');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -246,26 +247,29 @@ const analyzeImage = async (req, res) => {
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         const prompt = `
-Analyze the image provided.
+Analyze the image provided and respond in the following JSON format:
 
-First, determine if the image is of a mangrove forest or a coastal environment where mangroves grow.
+{
+  "isMangrove": true/false,
+  "analysis": "your detailed analysis here"
+}
 
-If it is, then check for any of the following threats:
+First, determine if the image is of a mangrove forest or a coastal environment where mangroves grow. Set "isMangrove" to true if it contains mangroves, false otherwise.
+
+If isMangrove is true, then check for any of the following threats in your analysis:
 - Cut down or felled trees
 - Fire or smoke indicating burning trees
 - Oil spillage in the water
 - Waste or garbage dumping
 - Any other visible signs of damage or destruction.
 
-If a threat is detected, describe the threat and estimate its approximate severity (e.g., low, medium, high). For example: "Threat detected: A few cut trees are visible. Approximate threat level: Low." or "Threat detected: A large area of the forest is on fire. Approximate threat level: High."
+If a threat is detected, describe the threat and estimate its approximate severity (e.g., low, medium, high). For example: "Threat detected: A few cut trees are visible. Approximate threat level: Low."
 
-If no threat is detected but it is a mangrove, identify the species and provide a short, 5-line summary including:
-- Species name
-- Key benefits
-- Common threats
-- Main locations where it is found.
+If no threat is detected but it is a mangrove, identify the species and provide a short summary including species name, key benefits, common threats, and main locations.
 
-If the image is not of a mangrove environment, respond with: 'The uploaded image does not appear to be a mangrove area. Please upload photos of potential threats to mangrove forests.'
+If isMangrove is false, set the analysis to: "The uploaded image does not appear to be a mangrove area. Please upload photos of potential threats to mangrove forests."
+
+Always respond with valid JSON format.
 `;
 
         const imagePart = {
@@ -281,7 +285,35 @@ If the image is not of a mangrove environment, respond with: 'The uploaded image
         const text = response.text();
 
         console.log('Analysis completed successfully');
-        res.json({ analysis: text });
+        
+        // Parse JSON response from Gemini
+        try {
+            // Clean the response text by removing markdown code blocks
+            let cleanText = text.trim();
+            
+            // Remove markdown code block markers if present
+            if (cleanText.startsWith('```json')) {
+                cleanText = cleanText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+            } else if (cleanText.startsWith('```')) {
+                cleanText = cleanText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+            }
+            
+            const analysisData = JSON.parse(cleanText);
+            res.json({ 
+                analysis: analysisData.analysis,
+                isMangrove: analysisData.isMangrove 
+            });
+        } catch (parseError) {
+            console.error('Failed to parse Gemini response as JSON:', parseError);
+            console.log('Raw response:', text);
+            
+            // Fallback: treat as plain text and check for mangrove keywords
+            const isMangrove = !text.toLowerCase().includes('does not appear to be a mangrove');
+            res.json({ 
+                analysis: text,
+                isMangrove: isMangrove 
+            });
+        }
     } catch (error) {
         console.error('Error analyzing image:', error);
         res.status(500).json({ error: 'Failed to analyze image.' });
@@ -491,7 +523,7 @@ const addComment = async (req, res) => {
     }
 
     const { id } = req.params;
-    const { text } = req.body;
+    const { content } = req.body;
 
     const report = await Report.findById(id);
     if (!report) {
@@ -500,7 +532,7 @@ const addComment = async (req, res) => {
       });
     }
 
-    await report.addComment(req.user.id, text);
+    await report.addComment(req.user.id, content);
 
     // Award points for commenting
     await req.user.awardPoints(2, 'Comment added');
@@ -537,61 +569,46 @@ const addComment = async (req, res) => {
   }
 };
 
-// Upvote/downvote report
-const toggleUpvote = async (req, res) => {
+// Upvote a report
+const upvoteReport = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user.id;
 
     const report = await Report.findById(id);
     if (!report) {
-      return res.status(404).json({
-        error: 'Report not found'
-      });
+      return res.status(404).json({ success: false, message: 'Report not found' });
     }
 
     // Check if user already upvoted
-    const hasUpvoted = report.upvotes.some(upvote => upvote.user.equals(req.user.id));
-
+    const hasUpvoted = report.upvotes.some(upvote => upvote.user.toString() === userId);
+    
     if (hasUpvoted) {
-      await report.removeUpvote(req.user.id);
-      res.json({
+      // Remove upvote (toggle functionality)
+      report.upvotes = report.upvotes.filter(upvote => upvote.user.toString() !== userId);
+      await report.save();
+      
+      return res.json({ 
+        success: true, 
         message: 'Upvote removed',
-        upvoted: false,
-        upvoteCount: report.upvotes.length
-      });
-    } else {
-      await report.addUpvote(req.user.id);
-
-      // Award points for upvoting
-      await req.user.awardPoints(1, 'Upvote given');
-
-      // Create notification for report owner (if not upvoting own report)
-      if (!report.reporter.equals(req.user.id)) {
-        await Notification.create({
-          recipient: report.reporter,
-          type: 'upvote_received',
-          title: 'Your Report Received an Upvote',
-          message: `${req.user.name} upvoted your report "${report.title}".`,
-          relatedReport: report._id,
-          relatedUser: req.user.id,
-          priority: 'low',
-          channel: ['in_app']
-        });
-      }
-
-      res.json({
-        message: 'Report upvoted',
-        upvoted: true,
-        upvoteCount: report.upvotes.length
+        upvoteCount: report.upvotes.length,
+        hasUpvoted: false
       });
     }
 
-  } catch (error) {
-    console.error('Error toggling upvote:', error);
-    res.status(500).json({
-      error: 'Failed to toggle upvote',
-      message: error.message
+    // Add upvote
+    report.upvotes.push({ user: userId });
+    await report.save();
+
+    res.json({ 
+      success: true, 
+      message: 'Report upvoted successfully',
+      upvoteCount: report.upvotes.length,
+      hasUpvoted: true
     });
+  } catch (error) {
+    console.error('Error upvoting report:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -662,14 +679,298 @@ const getNearbyReports = async (req, res) => {
   }
 };
 
+const getAllReports = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+    const userId = req.user.id;
+    const Comment = require('../models/comment.model');
+    
+    const sortObj = {};
+    sortObj[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    const reports = await Report.find({ status: { $ne: 'rejected' } })
+      .sort(sortObj)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate('reporter', 'name')
+      .select('title description incidentType severity location createdAt photos upvotes status')
+      .lean();
+    
+    // Get comment counts for all reports
+    const reportIds = reports.map(report => report._id);
+    const commentCounts = await Comment.aggregate([
+      { $match: { reportId: { $in: reportIds } } },
+      { $group: { _id: '$reportId', count: { $sum: 1 } } }
+    ]);
+    
+    // Create a map for quick lookup
+    const commentCountMap = {};
+    commentCounts.forEach(item => {
+      commentCountMap[item._id.toString()] = item.count;
+    });
+    
+    const reportsWithCounts = reports.map(report => ({
+      ...report,
+      upvoteCount: report.upvotes ? report.upvotes.length : 0,
+      hasUpvoted: report.upvotes ? report.upvotes.some(upvote => upvote.user.toString() === userId) : false,
+      commentCount: commentCountMap[report._id.toString()] || 0
+    }));
+    
+    const total = await Report.countDocuments({ status: { $ne: 'rejected' } });
+    
+    res.json({
+      success: true,
+      reports: reportsWithCounts,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching reports:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch reports'
+    });
+  }
+};
+
+// Get reports for evaluation (verified/resolved)
+const getReportsForEvaluation = async (req, res) => {
+  try {
+    const reports = await Report.find({ 
+      status: { $in: ['verified', 'resolved'] } 
+    })
+    .populate('reporter', 'name')
+    .sort({ createdAt: -1 })
+    .lean();
+
+    // Check which reports already have evaluations
+    const reportIds = reports.map(r => r._id);
+    const evaluations = await ReportEvaluation.find({ 
+      reportId: { $in: reportIds } 
+    }).select('reportId');
+    
+    const evaluatedReportIds = new Set(evaluations.map(e => e.reportId.toString()));
+    
+    const reportsWithEvaluationStatus = reports.map(report => ({
+      ...report,
+      evaluationCompleted: evaluatedReportIds.has(report._id.toString())
+    }));
+
+    res.json({
+      success: true,
+      reports: reportsWithEvaluationStatus
+    });
+  } catch (error) {
+    console.error('Error fetching reports for evaluation:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch reports for evaluation'
+    });
+  }
+};
+
+// Generate loss estimation using Gemini API
+const generateLossEstimation = async (req, res) => {
+  try {
+    const { reportId, incidentType, metadata } = req.body;
+
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ error: 'API key not configured.' });
+    }
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    // Create incident-specific prompts
+    const incidentPrompts = {
+      illegal_cutting: `
+Based on the following data about illegal mangrove tree cutting:
+- Trees cut: ${metadata.treesCount || 0} trees
+- Area affected: ${metadata.areaAffected || 0} hectares
+- Biomass loss: ${metadata.biomassLoss || 0} tons
+- Average tree age: ${metadata.treeAge || 0} years
+
+Provide COMPLETE numerical estimates for ALL categories. Do not leave any section empty. Include specific numbers for:
+
+1. Carbon Sequestration Loss: Calculate both low and high estimates in tons CO2
+2. Biodiversity Impact: Estimate number of species affected and habitat loss percentage
+3. Economic Value Lost: Provide dollar amounts for timber value and ecosystem services
+4. Coastal Protection Impact: Estimate storm surge protection loss in meters/percentage
+5. Recovery Time Estimation: Provide specific years for full ecosystem recovery
+6. Long-Term Ecological Consequences: Quantify cascading effects with numbers
+
+Format each section with specific numerical values, not just descriptions.`,
+
+      dumping: `
+Based on the following waste dumping incident data:
+- Waste volume: ${metadata.wasteVolume || 0} cubic meters
+- Waste type: ${metadata.wasteType || 'Unknown'}
+- Area contaminated: ${metadata.areaContaminated || 0} square meters
+- Water body affected: ${metadata.waterBodyAffected ? 'Yes' : 'No'}
+
+Provide COMPLETE numerical estimates for ALL categories:
+1. Soil and water contamination impact: Specify contamination levels and affected area in square meters
+2. Marine life mortality estimates: Provide specific numbers of fish/organisms affected
+3. Cleanup costs and time required: Give exact dollar amounts and months needed
+4. Long-term ecosystem damage: Quantify recovery time in years and percentage impact
+5. Human health risks: Estimate affected population and health cost in dollars
+6. Economic impact on local communities: Provide specific economic losses in dollars
+
+Include specific numerical values for each category.`,
+
+      pollution: `
+Based on the pollution incident data:
+- Pollutant type: ${metadata.pollutantType || 'Unknown'}
+- Concentration level: ${metadata.concentrationLevel || 'Unknown'}
+- Area affected: ${metadata.areaAffected || 0} hectares
+- Water quality impact: ${metadata.waterQualityImpact || 'Unknown'}
+
+Provide COMPLETE numerical estimates for ALL categories:
+1. Water quality degradation impact: Specify pollution levels and affected water volume in liters
+2. Marine ecosystem damage: Quantify habitat loss percentage and affected area
+3. Fish mortality estimates: Provide specific numbers of fish deaths and species affected
+4. Restoration costs and timeline: Give exact dollar amounts and years for recovery
+5. Impact on local fishing industry: Calculate economic losses in dollars per year
+6. Public health implications: Estimate affected population and healthcare costs
+
+Include specific numerical values for each category.`,
+
+      oil_spill: `
+Based on the oil spill data:
+- Oil volume spilled: ${metadata.spillVolume || 0} liters
+- Area affected: ${metadata.spillArea || 0} square meters
+- Oil type: ${metadata.oilType || 'Unknown'}
+- Cleanup difficulty: ${metadata.cleanupDifficulty || 'Unknown'}
+
+Provide COMPLETE numerical estimates for ALL categories:
+1. Marine life mortality: Specify exact numbers of fish, birds, and mammals affected
+2. Mangrove vegetation damage: Quantify trees/area damaged and recovery time in years
+3. Cleanup and restoration costs: Provide specific dollar amounts and timeline in months
+4. Economic impact on fishing and tourism: Calculate losses in dollars per year
+5. Long-term ecosystem recovery time: Give exact years for full recovery
+6. Carbon sequestration capacity loss: Specify tons of CO2 capacity lost
+
+Include specific numerical values for each category.`,
+
+      land_reclamation: `
+Based on the land reclamation data:
+- Area reclaimed: ${metadata.areaReclaimed || 0} hectares
+- Mangrove area lost: ${metadata.mangroveAreaLost || 0} hectares
+- Sediment volume: ${metadata.sedimentVolume || 0} cubic meters
+- Ecosystem disruption level: ${metadata.ecosystemDisruption || 'Unknown'}
+
+Provide COMPLETE numerical estimates for ALL categories:
+1. Habitat destruction impact: Specify exact hectares lost and species affected
+2. Species displacement and mortality: Provide numbers of animals displaced/killed
+3. Carbon storage capacity lost: Calculate tons of CO2 storage permanently lost
+4. Coastal protection services lost: Quantify storm protection reduction in percentage
+5. Economic value of destroyed ecosystem: Provide dollar value of lost services
+6. Irreversible ecological changes: Specify timeline and percentage of permanent damage
+
+Include specific numerical values for each category.`,
+
+      wildlife_disturbance: `
+Based on the wildlife disturbance data:
+- Species affected: ${metadata.speciesAffected || 0} species
+- Animals affected: ${metadata.animalCount || 0} animals
+- Habitat area disturbed: ${metadata.habitatArea || 0} hectares
+- Disturbance type: ${metadata.disturbanceType || 'Unknown'}
+
+Provide COMPLETE numerical estimates for ALL categories:
+1. Breeding disruption impact: Specify number of breeding pairs affected and success rate reduction percentage
+2. Migration pattern changes: Quantify animals forced to change routes and distance increase
+3. Population decline estimates: Provide specific percentage decline and number of animals affected
+4. Habitat abandonment risk: Calculate percentage of habitat likely to be abandoned
+5. Ecosystem balance disruption: Quantify food chain impact and species interaction changes
+6. Recovery timeline for wildlife populations: Give exact years for population recovery
+
+Include specific numerical values for each category.`
+    };
+
+    const prompt = incidentPrompts[incidentType] || `
+Analyze the environmental incident with type: ${incidentType}
+Metadata: ${JSON.stringify(metadata)}
+
+Provide a comprehensive loss estimation covering environmental, economic, and ecological impacts.`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const estimation = response.text();
+
+    res.json({
+      success: true,
+      estimation: estimation
+    });
+
+  } catch (error) {
+    console.error('Error generating loss estimation:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate loss estimation'
+    });
+  }
+};
+
+// Save evaluation data
+const saveReportEvaluation = async (req, res) => {
+  try {
+    const { reportId, metadata, estimation } = req.body;
+    const evaluatedBy = req.user.id;
+
+    // Check if evaluation already exists
+    const existingEvaluation = await ReportEvaluation.findOne({ reportId });
+    
+    if (existingEvaluation) {
+      // Update existing evaluation
+      existingEvaluation.metadata = metadata;
+      existingEvaluation.estimation = estimation;
+      existingEvaluation.evaluatedBy = evaluatedBy;
+      existingEvaluation.evaluatedAt = new Date();
+      await existingEvaluation.save();
+    } else {
+      // Create new evaluation
+      const evaluation = new ReportEvaluation({
+        reportId,
+        metadata,
+        estimation,
+        evaluatedBy
+      });
+      await evaluation.save();
+    }
+
+    res.json({
+      success: true,
+      message: 'Evaluation saved successfully'
+    });
+
+  } catch (error) {
+    console.error('Error saving evaluation:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to save evaluation'
+    });
+  }
+};
+
+
 module.exports = {
   submitReport,
+  analyzeImage,
   getReports,
+  getAllReports,
+  getReportsForEvaluation,
+  generateLossEstimation,
+  saveReportEvaluation,
+  getReportStats,
+  getNearbyReports,
   getReportById,
   validateReport,
   addComment,
-  toggleUpvote,
-  getReportStats,
-  getNearbyReports,
-  analyzeImage
+  upvoteReport
 };
