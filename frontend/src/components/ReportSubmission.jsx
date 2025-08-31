@@ -312,9 +312,7 @@ const ReportSubmission = () => {
       });
 
       if (response.data) {
-        toast.success(
-          `Report submitted successfully! You earned ${response.data.pointsAwarded} points.`
-        );
+        toast.success('Report submitted successfully! Your report is pending admin review.');
 
         previewPhotos.forEach((photo) => {
           URL.revokeObjectURL(photo.url);
@@ -488,9 +486,7 @@ const ReportSubmission = () => {
               <div className="location-capture">
                 <button
                   type="button"
-                  className={`location-button ${
-                    locationLoading ? "loading" : ""
-                  }`}
+                  className="location-button"
                   onClick={getCurrentLocation}
                   disabled={locationLoading}
                 >
@@ -567,8 +563,7 @@ const ReportSubmission = () => {
                           : "Drag and drop photos here, or click to browse"}
                       </p>
                       <p className="upload-secondary">
-                        Maximum 5 photos, 10MB each • Supported: JPEG, PNG,
-                        WebP, HEIC
+                        Supported: JPEG, PNG, WebP, HEIC
                       </p>
                     </div>
                   </div>
@@ -654,8 +649,8 @@ const ReportSubmission = () => {
               </button>
               <button
                 type="submit"
-                className={`btn btn-primary ${loading ? "loading" : ""}`}
-                disabled={loading || !isMangroveValid}
+                className="btn btn-primary"
+                disabled={loading}
               >
                 {loading ? "Submitting Report..." : "Submit Report"}
               </button>

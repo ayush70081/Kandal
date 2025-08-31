@@ -84,6 +84,9 @@ const reportSchema = new mongoose.Schema({
       type: String,
       required: true
     },
+    thumbnailPath: {
+      type: String
+    },
     size: {
       type: Number,
       required: true
@@ -120,8 +123,8 @@ const reportSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: {
-      values: ['pending', 'under_review', 'verified', 'false_positive', 'resolved'],
-      message: 'Status must be one of: pending, under_review, verified, false_positive, resolved'
+      values: ['pending', 'verified', 'rejected'],
+      message: 'Status must be one of: pending, verified, rejected'
     },
     default: 'pending'
   },
@@ -157,6 +160,49 @@ const reportSchema = new mongoose.Schema({
       type: Number,
       min: 0,
       max: 1
+    },
+    processedAt: Date
+  },
+
+  // AI review (decision + rationale)
+  aiReview: {
+    decision: {
+      type: String,
+      enum: ['approve', 'reject', 'inconclusive'],
+      default: 'inconclusive'
+    },
+    reason: {
+      type: String,
+      maxlength: [2000, 'AI reason must be less than 2000 characters']
+    },
+    mangroveDetected: {
+      type: Boolean,
+      default: false
+    },
+    detectedIncidentType: {
+      type: String
+    },
+    detectedSeverity: {
+      type: String,
+      enum: ['low', 'medium', 'high', 'critical', null],
+      default: null
+    },
+    matchedIncidentType: {
+      type: Boolean,
+      default: false
+    },
+    matchedSeverity: {
+      type: Boolean,
+      default: false
+    },
+    confidence: {
+      type: Number,
+      min: 0,
+      max: 1
+    },
+    model: {
+      type: String,
+      default: 'gemini-1.5-flash'
     },
     processedAt: Date
   },
@@ -310,7 +356,7 @@ reportSchema.methods.approveByAdmin = function(adminIdentifier, notes = '') {
 
 // Admin reject
 reportSchema.methods.rejectByAdmin = function(adminIdentifier, notes = '') {
-  this.status = 'false_positive';
+  this.status = 'rejected';
   this.reviewedBy = adminIdentifier;
   this.reviewedAt = new Date();
   this.adminNotes = notes;

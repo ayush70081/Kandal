@@ -8,6 +8,8 @@ const ReportListing = () => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [detailReport, setDetailReport] = useState(null);
   const [filters, setFilters] = useState({
     status: 'all',
     incidentType: 'all',
@@ -36,10 +38,7 @@ const ReportListing = () => {
   const statusOptions = [
     { value: 'all', label: 'All Status' },
     { value: 'pending', label: 'Pending Review' },
-    { value: 'reviewing', label: 'Under Review' },
     { value: 'verified', label: 'Verified' },
-    { value: 'investigating', label: 'Investigating' },
-    { value: 'resolved', label: 'Resolved' },
     { value: 'rejected', label: 'Rejected' }
   ];
 
@@ -105,10 +104,7 @@ const ReportListing = () => {
   const getStatusColor = (status) => {
     const colors = {
       pending: '#ffc107',
-      reviewing: '#17a2b8',
       verified: '#28a745',
-      investigating: '#fd7e14',
-      resolved: '#6f42c1',
       rejected: '#dc3545'
     };
     return colors[status] || '#6c757d';
@@ -127,7 +123,35 @@ const ReportListing = () => {
 
   // Navigate to report details
   const goToReportDetails = (reportId) => {
-    navigate(`/reports/${reportId}`);
+    const report = reports.find(r => r._id === reportId);
+    if (report) {
+      setDetailReport(report);
+      setShowDetailModal(true);
+    }
+  };
+
+  const closeDetails = () => {
+    setDetailReport(null);
+    setShowDetailModal(false);
+  };
+
+  const getUploadBase = () => {
+    const apiBase = import.meta.env?.VITE_API_BASE || 'http://localhost:5000/api';
+    return apiBase.replace(/\/api\/?$/, '');
+  };
+
+  const getAiDecisionBadge = (aiReview) => {
+    const decision = aiReview?.decision || 'inconclusive';
+    const colors = { approve: '#10b981', reject: '#ef4444', inconclusive: '#6b7280' };
+    const bg = colors[decision] || '#6b7280';
+    return (
+      <span
+        title={aiReview?.reason || ''}
+        style={{ background: bg, color: '#fff', padding: '0.25rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600, textTransform: 'capitalize' }}
+      >
+        {decision}
+      </span>
+    );
   };
 
   // Format date
@@ -263,15 +287,23 @@ const ReportListing = () => {
                   {reports.map(report => (
                     <div key={report._id} className="report-card">
                       <div className="card-header">
-                        <div className="card-title-section">
-                          <h3 className="card-title">{report.title}</h3>
-                          <div className="card-badges">
+                        <h3 className="card-title">{report.title}</h3>
+                        <div className="card-badges-horizontal">
+                          <div className="badge-with-label">
+                            <span className="badge-label">Status:</span>
                             <span className={`status-badge status-${report.status}`}>
-                              {report.status}
+                              {report.status.charAt(0).toUpperCase() + report.status.slice(1)}
                             </span>
+                          </div>
+                          <div className="badge-with-label">
+                            <span className="badge-label">Severity:</span>
                             <span className={`priority-badge priority-${report.severity}`}>
-                              {report.severity}
+                              {report.severity.charAt(0).toUpperCase() + report.severity.slice(1)}
                             </span>
+                          </div>
+                          <div className="badge-with-label">
+                            <span className="badge-label">AI Review:</span>
+                            {getAiDecisionBadge(report.aiReview)}
                           </div>
                         </div>
                       </div>
@@ -288,17 +320,19 @@ const ReportListing = () => {
                             <span className="meta-label">Date:</span>
                             <span className="meta-value">{formatDate(report.createdAt)}</span>
                           </div>
-                          {report.location && report.location.coordinates && report.location.coordinates.length === 2 && (
-                            <div className="meta-item">
-                              <span className="meta-label">Location:</span>
-                              <span className="meta-value">
-                                {report.location.coordinates[1].toFixed(4)}, {report.location.coordinates[0].toFixed(4)}
-                              </span>
-                            </div>
-                          )}
+                          <div className="meta-item">
+                            <span className="meta-label">Location:</span>
+                            <span className="meta-value">
+                              {report.location && report.location.coordinates && report.location.coordinates.length === 2 
+                                ? `${report.location.coordinates[1].toFixed(4)}, ${report.location.coordinates[0].toFixed(4)}`
+                                : 'Not specified'
+                              }
+                            </span>
+                          </div>
                         </div>
 
                         <div className="card-description">
+                          <span className="description-label">Description:</span>
                           <p>{report.description.length > 150 
                             ? `${report.description.substring(0, 150)}...` 
                             : report.description}
@@ -315,7 +349,7 @@ const ReportListing = () => {
 
                       <div className="card-actions">
                         <button 
-                          className="btn btn-outline"
+                          className="btn btn-primary"
                           onClick={() => goToReportDetails(report._id)}
                         >
                           View Full Report
@@ -323,6 +357,55 @@ const ReportListing = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+              {showDetailModal && detailReport && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+                  <div className="report-modal" style={{ background: '#fff', borderRadius: '8px', padding: '1rem', width: '100%', maxWidth: '860px', maxHeight: '90vh', overflowY: 'auto' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <h3 style={{ margin: 0 }}>{detailReport.title}</h3>
+                      <button className="btn btn-primary btn-sm" onClick={closeDetails}>Close</button>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                      <span className={`status-badge status-${detailReport.status}`}>{detailReport.status}</span>
+                      <span className={`priority-badge priority-${detailReport.severity}`}>{detailReport.severity}</span>
+                      <span className="status-badge" style={{ background: '#e5e7eb', color: '#374151' }}>{detailReport.incidentType?.replace('_', ' ')}</span>
+                      {getAiDecisionBadge(detailReport.aiReview)}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                      <div>
+                        <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>Date</div>
+                        <div>{formatDate(detailReport.createdAt)}</div>
+                      </div>
+                      {detailReport.location?.coordinates?.length === 2 && (
+                        <div>
+                          <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>Location</div>
+                          <div>{detailReport.location.coordinates[1].toFixed(6)}, {detailReport.location.coordinates[0].toFixed(6)}</div>
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <div style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '0.25rem' }}>Description</div>
+                      <div style={{ whiteSpace: 'pre-wrap', color: '#374151', fontSize: '0.95rem' }}>{detailReport.description}</div>
+                    </div>
+                    {Array.isArray(detailReport.photos) && detailReport.photos.length > 0 && (
+                      <div style={{ marginBottom: '1rem' }}>
+                        <div style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '0.5rem' }}>Photos</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.75rem' }}>
+                          {detailReport.photos.map((p, idx) => {
+                            const base = getUploadBase();
+                            const thumb = p.thumbnailPath ? `${base}/${p.thumbnailPath}` : `${base}/${p.path}`;
+                            const full = `${base}/${p.path}`;
+                            return (
+                              <a key={idx} href={full} target="_blank" rel="noreferrer" style={{ display: 'block', background: '#f3f4f6', borderRadius: '6px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
+                                <img src={thumb} alt={p.originalName} style={{ width: '100%', height: '120px', objectFit: 'cover', display: 'block' }} />
+                              </a>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
           </div>

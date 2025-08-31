@@ -12,7 +12,7 @@ router.use(authenticateAdminToken);
 router.get('/', [
   query('page').optional().isInt({ min: 1 }),
   query('limit').optional().isInt({ min: 1, max: 100 }),
-  query('status').optional().isIn(['pending', 'under_review', 'verified', 'false_positive', 'resolved'])
+  query('status').optional().isIn(['pending', 'verified', 'rejected'])
 ], AdminReportController.list);
 
 // Get report details

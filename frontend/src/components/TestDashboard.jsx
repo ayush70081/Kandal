@@ -18,10 +18,7 @@ const TestDashboard = () => {
   const getStatusColor = (status) => {
     const colors = {
       pending: '#ffc107',
-      reviewing: '#17a2b8',
       verified: '#28a745',
-      investigating: '#fd7e14',
-      resolved: '#6f42c1',
       rejected: '#dc3545'
     };
     return colors[status] || '#6c757d';

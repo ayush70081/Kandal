@@ -13,8 +13,9 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, ChartDataLabels);
 
 const AnalyticsDashboard = () => {
   const [overview, setOverview] = useState(null);
@@ -35,7 +36,10 @@ const AnalyticsDashboard = () => {
           adminAPI.analyticsGeographic()
         ]);
         if (o.data.success) setOverview(o.data.data);
-        if (r.data.success) setReports(r.data.data.monthly || []);
+        if (r.data.success) {
+          console.log('Weekly reports data:', r.data.data.weekly);
+          setReports(r.data.data.weekly || []);
+        }
         if (u.data.success) setUsers(u.data.data.contribution || []);
         if (g.data.success) setGeo(g.data.data.byTypeAndSeverity || []);
         setError(null);
@@ -51,9 +55,83 @@ const AnalyticsDashboard = () => {
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top'
+         plugins: {
+       legend: {
+         display: false, // Hide the legend completely
+       },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: '#fff',
+        bodyColor: '#fff',
+        borderColor: '#10b981',
+        borderWidth: 1,
+        cornerRadius: 8,
+        displayColors: false
+      }
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false
+        },
+                 ticks: {
+           color: '#4b5563',
+           font: {
+             size: 12,
+             weight: '500',
+             family: 'Inter, system-ui, sans-serif'
+           },
+           padding: 8
+         },
+                 title: {
+           display: true,
+           text: 'Days of the Week',
+           color: '#1f2937',
+           font: {
+             size: 16,
+             weight: '600',
+             family: 'Inter, system-ui, sans-serif'
+           },
+           padding: {
+             top: 15
+           }
+         }
+      },
+      y: {
+                 grid: {
+           color: '#e5e7eb',
+           borderDash: [3, 3],
+           lineWidth: 1
+         },
+                 ticks: {
+           color: '#4b5563',
+           font: {
+             size: 12,
+             weight: '500',
+             family: 'Inter, system-ui, sans-serif'
+           },
+           beginAtZero: true,
+           precision: 0,
+           min: 0, // Force minimum to 0
+           max: function(context) {
+             const maxValue = Math.max(...context.chart.data.datasets[0].data);
+             return Math.max(1, maxValue); // At least show 1, or the actual max
+           },
+           padding: 8
+         },
+                 title: {
+           display: true,
+           text: 'Reports Submitted',
+           color: '#1f2937',
+           font: {
+             size: 16,
+             weight: '600',
+             family: 'Inter, system-ui, sans-serif'
+           },
+           padding: {
+             bottom: 15
+           }
+         }
       }
     }
   };
@@ -70,47 +148,82 @@ const AnalyticsDashboard = () => {
 
       {overview && (
         <>
-          <div className="admin-cards">
-            <div className="admin-card">
-              <h3>Total Reports</h3>
-              <div className="value">{overview.totalReports}</div>
-            </div>
-            <div className="admin-card">
-              <h3>Active Users</h3>
-              <div className="value">{overview.usersCount}</div>
-            </div>
-            <div className="admin-card">
-              <h3>Server Uptime</h3>
-              <div className="value">{Math.floor(overview.serverUptimeSec / 3600)}h</div>
-            </div>
-            <div className="admin-card">
-              <h3>Avg Processing</h3>
-              <div className="value">
-                {overview.processing?.length > 0 
-                  ? `${Math.round(overview.processing[0]?.avgProcessingMs / 1000 / 60) || 0}m`
-                  : 'N/A'
-                }
-              </div>
-            </div>
-          </div>
+                     <div className="admin-cards">
+             <div className="admin-card">
+               <h3>Total Reports</h3>
+               <div className="value">{overview.totalReports}</div>
+             </div>
+             <div className="admin-card">
+               <h3>Active Users</h3>
+               <div className="value">{overview.usersCount}</div>
+             </div>
+           </div>
 
           {reports.length > 0 && (
             <div className="admin-chart-container">
-              <h3>Reports Trend</h3>
-              <div style={{ height: '300px' }}>
-                <Line 
+                             <div className="chart-header">
+                 <h3 style={{
+                   fontSize: '1.5rem',
+                   fontWeight: '600',
+                   color: '#1f2937',
+                   margin: '0 0 1rem 0',
+                   fontFamily: 'Inter, system-ui, sans-serif'
+                 }}>Weekly Reports Trend</h3>
+                 {reports.some(r => r.isSample) && (
+                   <div style={{ 
+                     backgroundColor: '#fef3c7', 
+                     color: '#92400e', 
+                     padding: '0.5rem', 
+                     borderRadius: '0.375rem', 
+                     fontSize: '0.875rem',
+                     marginBottom: '1rem'
+                   }}>
+                     📊 Showing sample data (no reports in current week)
+                   </div>
+                 )}
+               </div>
+              <div style={{ height: '350px', position: 'relative' }}>
+                <Line
                   data={{
-                    labels: reports.map(r => r._id),
-                    datasets: [{
-                      label: 'Reports Submitted',
-                      data: reports.map(r => r.count),
-                      borderColor: '#3b82f6',
-                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                      tension: 0.4,
-                      fill: true
-                    }]
+                    labels: reports.map(r => r.day),
+                                       datasets: [{
+                     label: '', // Remove the label
+                     data: reports.map(r => Math.max(0, r.count)), // Ensure no negative values
+                     borderColor: '#10b981',
+                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                     borderWidth: 3,
+                     pointBackgroundColor: '#10b981',
+                     pointBorderColor: '#ffffff',
+                     pointBorderWidth: 2,
+                     pointRadius: 6,
+                     pointHoverRadius: 8,
+                     tension: 0.4,
+                     fill: true
+                   }]
                   }}
-                  options={chartOptions}
+                  options={{
+                    ...chartOptions,
+                    interaction: {
+                      intersect: false,
+                      mode: 'index'
+                    },
+                    plugins: {
+                      ...chartOptions.plugins,
+                                             tooltip: {
+                         ...chartOptions.plugins.tooltip,
+                         callbacks: {
+                           title: function(context) {
+                             const dayData = reports[context[0].dataIndex];
+                             return dayData.day;
+                           },
+                           label: function(context) {
+                             const displayCount = Math.max(0, context.parsed.y);
+                             return `${displayCount} report${displayCount !== 1 ? 's' : ''}`;
+                           }
+                         }
+                       }
+                    }
+                  }}
                 />
               </div>
             </div>
@@ -119,11 +232,19 @@ const AnalyticsDashboard = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem' }}>
             {users.length > 0 && (
               <div className="admin-chart-container">
-                <h3>User Contribution Levels</h3>
-                <div style={{ height: '300px' }}>
+                <div className="chart-header">
+                  <h3>User Contribution Levels</h3>
+                  <div className="chart-stats">
+                    <span className="stat-item">
+                      <span className="stat-label">Total Users:</span>
+                      <span className="stat-value">{users.reduce((sum, u) => sum + u.count, 0)}</span>
+                    </span>
+                  </div>
+                </div>
+                <div style={{ height: '320px' }}>
                   <Bar 
                     data={{
-                      labels: users.map(u => u._id),
+                      labels: users.map(u => u._id.charAt(0).toUpperCase() + u._id.slice(1)),
                       datasets: [{
                         label: 'Number of Users',
                         data: users.map(u => u.count),
@@ -133,10 +254,25 @@ const AnalyticsDashboard = () => {
                           '#ffd700', // Gold
                           '#e5e4e2'  // Platinum
                         ],
+                        borderRadius: 6,
+                        borderSkipped: false,
                         borderWidth: 0
                       }]
                     }}
-                    options={chartOptions}
+                    options={{
+                      ...chartOptions,
+                      plugins: {
+                        ...chartOptions.plugins,
+                        tooltip: {
+                          ...chartOptions.plugins.tooltip,
+                          callbacks: {
+                            label: function(context) {
+                              return `${context.label}: ${context.parsed.y} users`;
+                            }
+                          }
+                        }
+                      }
+                    }}
                   />
                 </div>
               </div>
@@ -144,25 +280,69 @@ const AnalyticsDashboard = () => {
 
             {overview.statusStats?.length > 0 && (
               <div className="admin-chart-container">
-                <h3>Report Status Distribution</h3>
-                <div style={{ height: '300px' }}>
-                  <Doughnut 
-                    data={{
-                      labels: overview.statusStats.map(s => s._id.replace('_', ' ')),
-                      datasets: [{
-                        data: overview.statusStats.map(s => s.count),
-                        backgroundColor: [
-                          '#fbbf24', // pending
-                          '#3b82f6', // under_review
-                          '#10b981', // verified
-                          '#ef4444', // false_positive
-                          '#6b7280'  // resolved
-                        ],
-                        borderWidth: 0
-                      }]
-                    }}
-                    options={chartOptions}
-                  />
+                               <div className="chart-header">
+                 <h3>Report Status Distribution</h3>
+               </div>
+                <div style={{ height: '320px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '280px', height: '280px' }}>
+                    <Doughnut 
+                      data={{
+                        labels: overview.statusStats.map(s => s._id.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())),
+                        datasets: [{
+                          data: overview.statusStats.map(s => s.count),
+                          backgroundColor: [
+                            '#fbbf24', // pending
+                            '#10b981', // verified
+                            '#ef4444', // rejected
+                            '#6366f1', // under_review
+                          ],
+                          borderWidth: 3,
+                          borderColor: '#ffffff',
+                          hoverBorderWidth: 4,
+                          hoverOffset: 8
+                        }]
+                      }}
+                                                                options={{
+                        ...chartOptions,
+                        cutout: '60%',
+                        scales: {
+                          x: {
+                            display: false
+                          },
+                          y: {
+                            display: false
+                          }
+                        },
+                        plugins: {
+                          ...chartOptions.plugins,
+                          tooltip: {
+                            ...chartOptions.plugins.tooltip,
+                            callbacks: {
+                              label: function(context) {
+                                const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                return `${context.label}: ${context.parsed} (${percentage}%)`;
+                              }
+                            }
+                          },
+                          datalabels: {
+                            color: '#ffffff',
+                            font: {
+                              weight: 'bold',
+                              size: 14
+                            },
+                            formatter: function(value, context) {
+                              const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                              const percentage = ((value / total) * 100).toFixed(1);
+                              return `${percentage}%\n${context.chart.data.labels[context.dataIndex]}`;
+                            },
+                            textAlign: 'center',
+                            textBaseline: 'middle'
+                          }
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             )}
